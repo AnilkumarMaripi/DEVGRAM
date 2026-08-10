@@ -54,7 +54,13 @@ app.get('/', (_request, response) => {
 })
 
 app.get('/api/health', (_request, response) => {
-  response.json({ status: 'ok', service: 'devgram-api', database: 'mongodb' })
+  const isConnected = mongoose.connection.readyState === 1
+  response.json({
+    status: isConnected ? 'ok' : 'degraded',
+    service: 'devgram-api',
+    database: isConnected ? 'connected' : 'disconnected',
+    readyState: mongoose.connection.readyState
+  })
 })
 
 app.use('/api/auth', authRoutes)
