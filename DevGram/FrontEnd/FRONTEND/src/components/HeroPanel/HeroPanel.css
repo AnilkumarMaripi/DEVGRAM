@@ -1,0 +1,156 @@
+.hero-panel {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 32px;
+  border-right: 1px solid #27272a;
+  background: #09090b;
+}
+
+.brand-header,
+.brand-divider,
+.brand-name {
+  display: flex;
+  align-items: center;
+}
+
+.brand-header {
+  gap: 10px;
+}
+
+.brand-kicker,
+.brand-divider,
+.hero-copy p,
+.preview-tag,
+.hero-footer {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.brand-kicker {
+  color: #71717a;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.brand-divider {
+  color: #52525b;
+  font-size: 0.6rem;
+}
+
+.brand-name {
+  color: #ffffff;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.hero-copy {
+  max-width: 540px;
+  padding: 20px 0;
+}
+
+.hero-copy h1 {
+  max-width: 600px;
+  margin: 0 0 18px;
+  color: #ffffff;
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.hero-copy h1 span {
+  display: block;
+  background: linear-gradient(90deg, #818cf8, #22d3ee, #34d399);
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-copy p {
+  max-width: 400px;
+  margin: 0;
+  color: #a1a1aa;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.feature-preview {
+  position: relative;
+  margin: 0;
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.feature-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  filter: none;
+  opacity: 1;
+}
+
+.preview-tag {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  border-radius: 999px;
+  padding: 5px 8px;
+  backdrop-filter: blur(10px);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.preview-tag-merge {
+  top: 16px;
+  left: 16px;
+  border: 1px solid rgba(236, 72, 153, 0.22);
+  background: rgba(236, 72, 153, 0.12);
+  color: #f472b6;
+}
+
+.preview-tag-ship {
+  right: 16px;
+  bottom: 16px;
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+}
+
+.hero-footer {
+  color: #52525b;
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .hero-panel {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #27272a;
+    padding: 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero-panel {
+    padding: 24px;
+  }
+
+  .brand-header {
+    flex-wrap: wrap;
+  }
+
+  /* no height override */
+}

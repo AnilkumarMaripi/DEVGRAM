@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "scripts": {
+    "start": "node start-all.js"
+  },
+  "dependencies": {
+    "@react-oauth/google": "^0.13.5"
+  }
+}
