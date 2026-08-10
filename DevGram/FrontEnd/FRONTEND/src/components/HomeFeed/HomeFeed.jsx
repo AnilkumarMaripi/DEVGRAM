@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { API_BASE_URL } from '../../services/api'
 import { fetchPosts, createPost, likePost } from '../../services/postService'
 import {
   fetchUsers,
@@ -285,7 +286,7 @@ function HomeFeed({ activeUser, onLogout }) {
 
     const handleShare = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/posts/${post._id}/share`, {
+        const res = await fetch(`${API_BASE_URL}/api/posts/${post._id}/share`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
@@ -298,7 +299,7 @@ function HomeFeed({ activeUser, onLogout }) {
 
     const handleSave = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/posts/${post._id}/save`, {
+        const res = await fetch(`${API_BASE_URL}/api/posts/${post._id}/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
@@ -479,10 +480,10 @@ function HomeFeed({ activeUser, onLogout }) {
     if (profileUser) {
       const fetchProfileStats = async () => {
         try {
-          const resFollowing = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/following/${profileUser.id}`, {
+          const resFollowing = await fetch(`${API_BASE_URL}/api/auth/following/${profileUser.id}`, {
             credentials: 'include'
           }).then(r => r.json())
-          const resFollowers = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/followers/${profileUser.id}`, {
+          const resFollowers = await fetch(`${API_BASE_URL}/api/auth/followers/${profileUser.id}`, {
             credentials: 'include'
           }).then(r => r.json())
           setProfileFollowers(Array.isArray(resFollowers) ? resFollowers : [])
@@ -522,7 +523,7 @@ function HomeFeed({ activeUser, onLogout }) {
       // Fetch saved gallery photos from database
       const fetchGallery = async () => {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/codelens-gallery`, {
+          const res = await fetch(`${API_BASE_URL}/api/auth/codelens-gallery`, {
             credentials: 'include'
           })
           if (res.ok) {
@@ -691,10 +692,10 @@ function HomeFeed({ activeUser, onLogout }) {
       setSentRequests(sentData)
 
       if (profileUser && profileUser.id === targetUserId) {
-        const resFollowing = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/following/${targetUserId}`, {
+        const resFollowing = await fetch(`${API_BASE_URL}/api/auth/following/${targetUserId}`, {
           credentials: 'include'
         }).then(r => r.json())
-        const resFollowers = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/followers/${targetUserId}`, {
+        const resFollowers = await fetch(`${API_BASE_URL}/api/auth/followers/${targetUserId}`, {
           credentials: 'include'
         }).then(r => r.json())
         setProfileFollowers(Array.isArray(resFollowers) ? resFollowers : [])
@@ -821,7 +822,7 @@ function HomeFeed({ activeUser, onLogout }) {
       setCapturedImage(dataUrl)
 
       // Save to database
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/codelens-gallery`, {
+      fetch(`${API_BASE_URL}/api/auth/codelens-gallery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: dataUrl }),
@@ -882,7 +883,7 @@ function HomeFeed({ activeUser, onLogout }) {
         setCapturedGallery(prev => prev.filter(p => p.id !== id))
         return
       }
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/codelens-gallery/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/codelens-gallery/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       })

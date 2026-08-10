@@ -10,13 +10,17 @@ process.on('uncaughtException', (err) => console.error('Uncaught Error:', err));
 process.on('unhandledRejection', (reason) => console.error('Unhandled Rejection:', reason));
 
 const app = express()
+app.set('trust proxy', 1)
 const port = process.env.PORT || 5000
 
 const localDevOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+const defaultProductionOrigins = ['https://devgram-sandy.vercel.app', 'https://anilkumarmaripi.github.io']
+const envOrigins = (process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean)
+
+const allowedOrigins = Array.from(new Set([...defaultProductionOrigins, ...envOrigins]))
 
 app.use(
   cors({

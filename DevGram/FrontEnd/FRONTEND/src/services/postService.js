@@ -1,5 +1,6 @@
-const envApi = import.meta.env.VITE_API_URL
-const apiUrl = (envApi && envApi.trim() !== '') ? envApi : 'http://localhost:5000'
+import { API_BASE_URL } from './api'
+
+const apiUrl = API_BASE_URL
 
 async function safeJsonParse(response) {
   const contentType = response.headers.get('content-type') || ''
@@ -8,7 +9,7 @@ async function safeJsonParse(response) {
   }
   const text = await response.text()
   if (text.startsWith('<!DOCTYPE') || text.includes('<html')) {
-    throw new Error(`Server returned HTML (${response.status}). Please verify backend is running on http://localhost:5000`)
+    throw new Error(`Server returned HTML (${response.status}). Please verify backend is running on ${API_BASE_URL}`)
   }
   try {
     return JSON.parse(text)
