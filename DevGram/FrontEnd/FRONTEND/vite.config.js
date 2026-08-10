@@ -18,7 +18,7 @@ export default defineConfig({
       }
     })
   ],
-  base: '/DevGram/',
+  base: '/',
   build: {
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html')
