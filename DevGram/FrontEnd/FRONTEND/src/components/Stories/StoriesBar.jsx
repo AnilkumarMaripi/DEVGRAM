@@ -97,7 +97,7 @@ function StoriesBar({ activeUser }) {
           <div className="story-circle-item own-circle">
             <div
               className={`story-avatar-ring ${
-                ownHasStories ? (ownGroup.hasUnseen ? 'ring-unseen' : 'ring-seen') : 'ring-unseen'
+                ownHasStories ? (ownGroup.hasUnseen ? 'ring-unseen' : 'ring-seen') : 'ring-none'
               }`}
               onClick={() => handleCircleClick(ownGroup || { isOwn: true, stories: [] }, 0)}
             >

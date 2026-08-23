@@ -20,7 +20,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 8px 4px;
+  padding: 8px 12px 8px 24px;
 }
 
 .stories-scroll-row::-webkit-scrollbar {
@@ -55,21 +55,41 @@
   background-clip: padding-box;
 }
 
-/* Exact Instagram-style Yellow -> Orange -> Pink -> Purple -> Red story gradient ring */
+/* Vibrant glowing shine animation when there is an active story */
 .ring-unseen {
   background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-  box-shadow: 0 0 16px rgba(220, 39, 67, 0.45);
+  box-shadow: 0 0 18px rgba(236, 72, 153, 0.65), 0 0 30px rgba(240, 148, 51, 0.4);
+  animation: storyShinePulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes storyShinePulse {
+  0% {
+    box-shadow: 0 0 12px rgba(236, 72, 153, 0.5), 0 0 20px rgba(240, 148, 51, 0.3);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(236, 72, 153, 0.85), 0 0 40px rgba(240, 148, 51, 0.6);
+    filter: brightness(1.15);
+  }
+  100% {
+    box-shadow: 0 0 14px rgba(236, 72, 153, 0.5), 0 0 22px rgba(240, 148, 51, 0.35);
+    filter: brightness(1);
+  }
 }
 
 /* Seen story muted gray ring */
 .ring-seen {
   background: #3f3f46;
   opacity: 0.8;
+  box-shadow: none;
+  animation: none;
 }
 
 .ring-none {
-  background: linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%);
-  opacity: 0.85;
+  background: transparent;
+  border: 2.5px dashed #3f3f46;
+  box-shadow: none;
+  animation: none;
 }
 
 .story-avatar-img {
