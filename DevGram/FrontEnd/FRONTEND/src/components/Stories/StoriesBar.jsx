@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchStoriesFeed, createStory, markStoryAsSeen, deleteStory } from '../../services/storyService'
 import AddStoryModal from './AddStoryModal'
 import StoryViewer from './StoryViewer'
