@@ -8,6 +8,7 @@ import { connectPostgres } from './config/pgDb.js'
 import authRoutes from './routes/authRoutes.js'
 import postRoutes from './routes/postRoutes.js'
 import storyRoutes from './routes/storyRoutes.js'
+import messageRoutes from './routes/messageRoutes.js'
 import Story from './models/Story.js'
 
 process.on('uncaughtException', (err) => console.error('Uncaught Error:', err));
@@ -70,6 +71,7 @@ app.get('/api/health', (_request, response) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
 app.use('/api/stories', storyRoutes)
+app.use('/api/messages', messageRoutes)
 
 try {
   await connectDatabase()

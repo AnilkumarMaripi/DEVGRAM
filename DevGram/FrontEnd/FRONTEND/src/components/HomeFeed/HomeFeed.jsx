@@ -40,6 +40,50 @@ function HomeFeed({ activeUser, onLogout }) {
   const [selectedChatUser, setSelectedChatUser] = useState(null)
   const [chatMessagesMap, setChatMessagesMap] = useState({})
   const [chatInputText, setChatInputText] = useState('')
+  const [chatConversations, setChatConversations] = useState([])
+
+  // Fetch persistent conversations list from API
+  const fetchConversations = useCallback(async () => {
+    if (!activeUser) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/conversations`, { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setChatConversations(data)
+      }
+    } catch (err) {
+      console.warn('Fetch conversations error:', err)
+    }
+  }, [activeUser])
+
+  // Fetch persistent chat history between activeUser and selectedChatUser
+  const fetchChatHistory = useCallback(async (partnerId) => {
+    if (!partnerId) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/messages/${partnerId}`, { credentials: 'include' })
+      if (res.ok) {
+        const history = await res.json()
+        setChatMessagesMap((prev) => ({
+          ...prev,
+          [partnerId]: history,
+        }))
+      }
+    } catch (err) {
+      console.warn('Fetch chat history error:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'direct') {
+      fetchConversations()
+    }
+  }, [activeTab, fetchConversations])
+
+  useEffect(() => {
+    if (selectedChatUser) {
+      fetchChatHistory(selectedChatUser.id)
+    }
+  }, [selectedChatUser, fetchChatHistory])
 
   // Professional account state
   const [isProfessionalAccount, setIsProfessionalAccount] = useState(
@@ -1999,7 +2043,7 @@ function HomeFeed({ activeUser, onLogout }) {
           </div>
         ) : activeTab === 'direct' ? (
           <div className="direct-view-container" style={{ display: 'flex', height: 'calc(100vh - 40px)', width: '100%', maxWidth: '960px', margin: '0 auto', padding: '16px', boxSizing: 'border-box' }}>
-            {connections.length === 0 && Object.keys(chatMessagesMap).length === 0 ? (
+            {connections.length === 0 && chatConversations.length === 0 && builders.length === 0 ? (
               /* Empty Messages State */
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 20px', background: '#09090b', border: '1px solid #1f1f23', borderRadius: '16px' }}>
                 <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(129, 140, 248, 0.1)', border: '1px solid rgba(129, 140, 248, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#818cf8', marginBottom: '16px' }}>
@@ -2022,30 +2066,49 @@ function HomeFeed({ activeUser, onLogout }) {
               <div style={{ display: 'flex', width: '100%', height: '100%', background: '#09090b', border: '1px solid #1f1f23', borderRadius: '16px', overflow: 'hidden' }}>
                 {/* Left: Chat User List */}
                 <div style={{ width: '280px', borderRight: '1px solid #1f1f23', display: 'flex', flexDirection: 'column', background: '#08080a' }}>
-                  <div style={{ padding: '16px', borderBottom: '1px solid #1f1f23' }}>
+                  <div style={{ padding: '16px', borderBottom: '1px solid #1f1f23', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#ffffff', fontWeight: '700' }}>Messages</h3>
+                    <span style={{ fontSize: '0.75rem', color: '#818cf8', background: 'rgba(129, 140, 248, 0.1)', padding: '3px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                      {Array.from(new Set([...chatConversations.map(c => c.id), ...connections.map(c => c.id), ...builders.filter(b => b.id !== activeUser?.id).map(b => b.id)])).length} Builders
+                    </span>
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto' }}>
-                    {connections.map((user) => (
-                      <div
-                        key={user.id}
-                        onClick={() => setSelectedChatUser(user)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', cursor: 'pointer',
-                          background: selectedChatUser?.id === user.id ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
-                          borderLeft: selectedChatUser?.id === user.id ? '3px solid #818cf8' : '3px solid transparent',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <img src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-                          <div style={{ fontSize: '0.78rem', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {chatMessagesMap[user.id]?.slice(-1)[0]?.text || `@${user.username}`}
+                    {(() => {
+                      const allChatUsersMap = new Map()
+                      chatConversations.forEach(c => allChatUsersMap.set(c.id, { ...c, lastMsg: c.lastMessage }))
+                      connections.forEach(u => {
+                        if (!allChatUsersMap.has(u.id)) {
+                          allChatUsersMap.set(u.id, { ...u, lastMsg: `@${u.username || u.name}` })
+                        }
+                      })
+                      builders.filter(b => b.id !== activeUser?.id).forEach(u => {
+                        if (!allChatUsersMap.has(u.id)) {
+                          allChatUsersMap.set(u.id, { ...u, lastMsg: `@${u.username || u.name}` })
+                        }
+                      })
+                      const userList = Array.from(allChatUsersMap.values())
+
+                      return userList.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => setSelectedChatUser(user)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', cursor: 'pointer',
+                            background: selectedChatUser?.id === user.id ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
+                            borderLeft: selectedChatUser?.id === user.id ? '3px solid #818cf8' : '3px solid transparent',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <img src={user.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {chatMessagesMap[user.id]?.slice(-1)[0]?.text || user.lastMsg || `@${user.username}`}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    })()}
                   </div>
                 </div>
 
@@ -2054,10 +2117,10 @@ function HomeFeed({ activeUser, onLogout }) {
                   {selectedChatUser ? (
                     <>
                       <div style={{ padding: '12px 20px', borderBottom: '1px solid #1f1f23', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src={selectedChatUser.avatar} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+                        <img src={selectedChatUser.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
                         <div>
                           <strong style={{ display: 'block', fontSize: '0.95rem', color: '#ffffff' }}>{selectedChatUser.name}</strong>
-                          <span style={{ fontSize: '0.78rem', color: '#818cf8' }}>@{selectedChatUser.username}</span>
+                          <span style={{ fontSize: '0.78rem', color: '#818cf8' }}>@{selectedChatUser.username || 'builder'}</span>
                         </div>
                       </div>
 
@@ -2066,25 +2129,48 @@ function HomeFeed({ activeUser, onLogout }) {
                         {(chatMessagesMap[selectedChatUser.id] || []).length === 0 ? (
                           <p style={{ textAlign: 'center', color: '#71717a', fontSize: '0.85rem', margin: 'auto' }}>Say hi to start the conversation! 🚀</p>
                         ) : (
-                          (chatMessagesMap[selectedChatUser.id] || []).map((msg, i) => (
-                            <div key={i} style={{ alignSelf: msg.senderId === activeUser?.id ? 'flex-end' : 'flex-start', maxWidth: '70%', background: msg.senderId === activeUser?.id ? '#4f46e5' : '#18181b', color: '#ffffff', padding: '10px 14px', borderRadius: '14px', fontSize: '0.88rem' }}>
-                              {msg.text}
-                            </div>
-                          ))
+                          (chatMessagesMap[selectedChatUser.id] || []).map((msg, i) => {
+                            const isMe = msg.senderId === activeUser?.id || msg.sender === activeUser?.id
+                            return (
+                              <div key={msg.id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%', background: isMe ? '#4f46e5' : '#18181b', color: '#ffffff', padding: '10px 14px', borderRadius: '14px', fontSize: '0.88rem' }}>
+                                {msg.text}
+                              </div>
+                            )
+                          })
                         )}
                       </div>
 
                       {/* Chat Input */}
                       <form
-                        onSubmit={(e) => {
+                        onSubmit={async (e) => {
                           e.preventDefault();
                           if (!chatInputText.trim() || !selectedChatUser) return;
-                          const newMsg = { senderId: activeUser.id, text: chatInputText, timestamp: new Date().toISOString() };
+                          const messageText = chatInputText.trim();
+                          setChatInputText('');
+                          const tempMsg = { id: `temp-${Date.now()}`, senderId: activeUser?.id, text: messageText, createdAt: new Date().toISOString() };
                           setChatMessagesMap(prev => ({
                             ...prev,
-                            [selectedChatUser.id]: [...(prev[selectedChatUser.id] || []), newMsg]
+                            [selectedChatUser.id]: [...(prev[selectedChatUser.id] || []), tempMsg]
                           }));
-                          setChatInputText('');
+
+                          try {
+                            const res = await fetch(`${API_BASE_URL}/api/messages/${selectedChatUser.id}`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({ text: messageText })
+                            })
+                            if (res.ok) {
+                              const savedMsg = await res.json()
+                              setChatMessagesMap(prev => ({
+                                ...prev,
+                                [selectedChatUser.id]: (prev[selectedChatUser.id] || []).map(m => m.id === tempMsg.id ? savedMsg : m)
+                              }))
+                              fetchConversations()
+                            }
+                          } catch (err) {
+                            console.warn('Send message error:', err)
+                          }
                         }}
                         style={{ padding: '16px', borderTop: '1px solid #1f1f23', display: 'flex', gap: '10px' }}
                       >
