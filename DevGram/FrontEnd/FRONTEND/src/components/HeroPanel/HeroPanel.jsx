@@ -22,7 +22,7 @@ function HeroPanel() {
 
       <figure className="feature-preview">
         <img
-          src={`${import.meta.env.BASE_URL}image3.png`}
+          src="/image3.png"
           alt="DevGram - developers collaborating with code overlays"
         />
       </figure>

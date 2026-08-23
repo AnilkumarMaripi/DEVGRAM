@@ -4,7 +4,7 @@ import AuthPanel from './components/AuthPanel/AuthPanel'
 import HeroPanel from './components/HeroPanel/HeroPanel'
 import HomeFeed from './components/HomeFeed/HomeFeed'
 import DevGramLogo from './components/icons/DevGramLogo'
-import { signInWithGoogle, checkAuthStatus, logoutUser, signUpUser, loginLocalUser, resetPassword } from './services/authService'
+import { signInWithGithub, signInWithGoogle, checkAuthStatus, logoutUser, signUpUser, loginLocalUser, resetPassword } from './services/authService'
 
 const BASE = '/DevGram'
 const routeNames = ['login', 'register', 'forgot', 'home']
@@ -116,6 +116,13 @@ function App() {
     return data
   }
 
+  const loginWithGithub = async () => {
+    const data = await signInWithGithub()
+    setActiveUser(data.user)
+    setPage('home')
+    return data
+  }
+
   const handleLogout = async () => {
     try {
       await logoutUser()
@@ -180,7 +187,7 @@ function App() {
             </div>
             <div className="landing-hero-visual">
               <img
-                src={`${import.meta.env.BASE_URL}image.png`}
+                src="/image.png"
                 alt="DevGram - developers collaborating with code overlays"
                 className="landing-hero-img"
               />
@@ -214,6 +221,7 @@ function App() {
           <HeroPanel />
           <AuthPanel
             activeUser={activeUser}
+            onGithubLogin={loginWithGithub}
             onGoogleLogin={loginWithGoogle}
             onLogin={loginUser}
             onNavigate={setPage}

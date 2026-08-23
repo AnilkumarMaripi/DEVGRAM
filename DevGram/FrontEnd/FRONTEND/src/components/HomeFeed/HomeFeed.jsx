@@ -17,6 +17,7 @@ import {
   markNotificationsRead
 } from '../../services/authService'
 import DevGramLogo from '../icons/DevGramLogo'
+import StoriesBar from '../Stories/StoriesBar'
 import './HomeFeed.css'
 
 function HomeFeed({ activeUser, onLogout }) {
@@ -2207,7 +2208,7 @@ function HomeFeed({ activeUser, onLogout }) {
               <div style={{ textAlign: 'center', padding: '48px 24px', background: '#09090b', border: '1px solid #1f1f23', borderRadius: '16px' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔒</div>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: '800', color: '#ffffff' }}>Professional Dashboard Locked</h3>
-                <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: '#a1a1aa', maxWidth: '420px', margin: '0 auto 24px auto', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '0.9rem', color: '#a1a1aa', maxWidth: '420px', margin: '0 auto 24px auto', lineHeight: '1.5' }}>
                   Switch to a DevGram Professional Creator Account to unlock build analytics, code reach metrics, and developer profile insights.
                 </p>
                 <button
@@ -2286,9 +2287,9 @@ function HomeFeed({ activeUser, onLogout }) {
             )}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '1040px', margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', margin: '0', padding: '0 40px 0 24px', boxSizing: 'border-box' }}>
             {/* Top Full Width Header Line */}
-            <header className="feed-app-header-stylish" style={{ width: '100%', padding: '12px 0 10px 0', borderBottom: '1px solid #1f1f23', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'visible' }}>
+            <header className="feed-app-header-stylish" style={{ width: '100%', padding: '12px 0 10px 0', borderBottom: '1px solid #1f1f23', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'visible' }}>
               <h1 style={{
                 margin: 0,
                 fontSize: '2.6rem',
@@ -2308,30 +2309,11 @@ function HomeFeed({ activeUser, onLogout }) {
             </header>
 
             {/* Two Column Container Below Full Header */}
-            <div style={{ display: 'flex', gap: '32px', width: '100%', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '40px', width: '100%', justifyContent: 'space-between' }}>
               {/* Left Main Feed Column (~65%, max-w-2xl) */}
               <div style={{ flex: 1, maxWidth: '630px', width: '100%' }}>
-                {/* Stories Bar (64px circular avatars with gradient ring border) */}
-                <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', padding: '12px 4px', marginBottom: '20px', scrollbarWidth: 'none' }}>
-                  {builders.slice(0, 6).map((builder, idx) => (
-                    <div
-                      key={builder.id || idx}
-                      onClick={() => setProfileUser(builder)}
-                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0, width: '68px' }}
-                    >
-                      <div style={{ padding: '2.5px', background: 'linear-gradient(45deg, #f97316, #ec4899, #a855f7)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img
-                          src={builder.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
-                          alt={builder.name}
-                          style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #000000', background: '#18181b' }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '0.72rem', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '68px', textAlign: 'center' }}>
-                        {builder.username || builder.name?.split(' ')[0] || 'builder'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {/* Stories Bar Component */}
+                <StoriesBar activeUser={activeUser} />
 
                 {/* Error State */}
                 {error && (
@@ -2368,7 +2350,7 @@ function HomeFeed({ activeUser, onLogout }) {
               </div>
 
               {/* Right Sidebar Below Header (~35%, hidden on mobile) */}
-              <aside className="feed-right-sidebar" style={{ width: '320px', flexShrink: 0, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <aside className="feed-right-sidebar" style={{ width: '320px', flexShrink: 0, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '20px', marginLeft: 'auto' }}>
                 {/* Current User Row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => activeUser && setProfileUser(activeUser)}>

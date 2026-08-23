@@ -351,6 +351,8 @@
     border-right: 0;
     border-bottom: 1px solid #27272a;
   }
+}
+
 .success-modal-overlay {
   position: fixed;
   inset: 0;

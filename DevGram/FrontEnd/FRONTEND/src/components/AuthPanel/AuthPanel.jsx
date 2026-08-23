@@ -69,6 +69,7 @@ function GoogleMark() {
 }
 
 function AuthPanel({
+  onGithubLogin,
   onGoogleLogin,
   onLogin,
   onNavigate,
@@ -81,6 +82,7 @@ function AuthPanel({
   const [registerData, setRegisterData] = useState(initialRegisterData)
   const [resetData, setResetData] = useState({ email: '', password: '', confirmPassword: '' })
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isGithubLoading, setIsGithubLoading] = useState(false)
   const [alert, setAlert] = useState('')
 
   const updateLogin = (event) => {
@@ -146,6 +148,18 @@ function AuthPanel({
       setAlert(error.message || 'Google sign-in failed.')
     } finally {
       setIsGoogleLoading(false)
+    }
+  }
+
+  const handleGithubLogin = async () => {
+    setIsGithubLoading(true)
+    setAlert('')
+    try {
+      await onGithubLogin()
+    } catch (error) {
+      setAlert(error.message || 'GitHub sign-in failed.')
+    } finally {
+      setIsGithubLoading(false)
     }
   }
 
@@ -225,8 +239,8 @@ function AuthPanel({
             <button className="ghost-button" type="button" onClick={handleGoogleLogin} disabled={isGoogleLoading}>
               <GoogleMark /> {isGoogleLoading ? 'Opening Google...' : 'Google'}
             </button>
-            <button className="ghost-button" type="button" disabled title="GitHub OAuth comes next">
-              <GitHubIcon /> GitHub
+            <button className="ghost-button" type="button" onClick={handleGithubLogin} disabled={isGithubLoading || isGoogleLoading}>
+              <GitHubIcon /> {isGithubLoading ? 'Opening GitHub...' : 'GitHub'}
             </button>
           </div>
           <p className="register-copy">new here? <button type="button" onClick={() => onNavigate('register')}>create an account -&gt;</button></p>
