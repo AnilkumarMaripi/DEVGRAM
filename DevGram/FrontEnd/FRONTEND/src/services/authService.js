@@ -142,15 +142,22 @@ export async function signInWithGithub() {
 }
 
 export async function checkAuthStatus() {
-  const response = await fetch(`${apiUrl}/api/auth/me`, {
-    method: 'GET',
-    credentials: 'include',
-  })
-  const data = await response.json()
-  if (!response.ok) {
-    throw new Error(data.message || 'Not authenticated')
+  try {
+    const response = await fetch(`${apiUrl}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (response.status === 401 || response.status === 403) {
+      return { user: null }
+    }
+    if (!response.ok) {
+      return { user: null }
+    }
+    const data = await response.json()
+    return data
+  } catch {
+    return { user: null }
   }
-  return data
 }
 
 export async function logoutUser() {

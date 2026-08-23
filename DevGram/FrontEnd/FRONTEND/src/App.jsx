@@ -58,22 +58,29 @@ function App() {
     const initAuth = async () => {
       try {
         const data = await checkAuthStatus()
-        setActiveUser(data.user)
-        const currentPath = window.location.pathname
-        const currentHash = window.location.hash
-        if (
-          currentPath === `${BASE}/` ||
-          currentPath === BASE ||
-          currentPath === `${BASE}/login` ||
-          currentPath === `${BASE}/register` ||
-          currentPath === `${BASE}/forgot` ||
-          currentHash === '#/' ||
-          currentHash === '' ||
-          currentHash === '#/login' ||
-          currentHash === '#/register' ||
-          currentHash === '#/forgot'
-        ) {
-          setPage('home')
+        if (data && data.user) {
+          setActiveUser(data.user)
+          const currentPath = window.location.pathname
+          const currentHash = window.location.hash
+          if (
+            currentPath === `${BASE}/` ||
+            currentPath === BASE ||
+            currentPath === `${BASE}/login` ||
+            currentPath === `${BASE}/register` ||
+            currentPath === `${BASE}/forgot` ||
+            currentHash === '#/' ||
+            currentHash === '' ||
+            currentHash === '#/login' ||
+            currentHash === '#/register' ||
+            currentHash === '#/forgot'
+          ) {
+            setPage('home')
+          }
+        } else {
+          setActiveUser(null)
+          if (window.location.pathname === `${BASE}/home` || window.location.hash === '#/home') {
+            setPage('landing')
+          }
         }
       } catch {
         setActiveUser(null)
