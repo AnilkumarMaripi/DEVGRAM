@@ -42,17 +42,54 @@ function App() {
     updateUrl(newPage)
   }
 
+  const [showNavConfirmModal, setShowNavConfirmModal] = useState(false)
+  const [pendingTargetPage, setPendingTargetPage] = useState('login')
+
+  const requestLogoutOrNav = (targetPage = 'login') => {
+    setPendingTargetPage(targetPage)
+    setShowNavConfirmModal(true)
+  }
+
+  const handleConfirmLogoutNav = async () => {
+    setShowNavConfirmModal(false)
+    try {
+      await logoutUser()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      setActiveUser(null)
+      setPage(pendingTargetPage || 'login')
+    }
+  }
+
+  const handleCancelLogoutNav = () => {
+    setShowNavConfirmModal(false)
+    if (activeUser && page === 'home') {
+      updateUrl('home')
+    }
+  }
+
   useEffect(() => {
     const handleNavigationChange = () => {
-      setPageInternal(getPageFromPath(window.location.pathname))
+      const targetPage = getPageFromPath(window.location.pathname)
+
+      // If user is logged in on home page and tries to go back to login/landing
+      if (activeUser && page === 'home' && targetPage !== 'home') {
+        updateUrl('home')
+        requestLogoutOrNav(targetPage === 'landing' ? 'login' : targetPage)
+        return
+      }
+
+      setPageInternal(targetPage)
     }
+
     window.addEventListener('popstate', handleNavigationChange)
     window.addEventListener('hashchange', handleNavigationChange)
     return () => {
       window.removeEventListener('popstate', handleNavigationChange)
       window.removeEventListener('hashchange', handleNavigationChange)
     }
-  }, [])
+  }, [activeUser, page])
 
   useEffect(() => {
     const initAuth = async () => {
@@ -130,15 +167,8 @@ function App() {
     return data
   }
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser()
-    } catch (error) {
-      console.error('Logout failed:', error)
-    } finally {
-      setActiveUser(null)
-      setPage('landing')
-    }
+  const handleLogout = () => {
+    requestLogoutOrNav('login')
   }
 
   if (isLoading) {
@@ -159,6 +189,93 @@ function App() {
 
   return (
     <main className={`app-shell ${page === 'home' ? 'app-shell-home' : ''}`}>
+      {/* Go to Login Confirmation Modal */}
+      {showNavConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.82)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#09090b',
+            border: '1px solid #1f1f23',
+            borderRadius: '20px',
+            padding: '28px 24px',
+            maxWidth: '400px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.8rem',
+              margin: '0 auto 16px auto'
+            }}>
+              🔐
+            </div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.02em' }}>
+              Go to Login Page?
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: '#a1a1aa', lineHeight: '1.5' }}>
+              Are you sure you want to leave your active session and return to the login page?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={handleCancelLogoutNav}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontWeight: '600',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                No, Stay Here
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogoutNav}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                Yes, Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {page === 'home' ? (
         <HomeFeed activeUser={activeUser} onLogout={handleLogout} />
       ) : page === 'landing' ? (
