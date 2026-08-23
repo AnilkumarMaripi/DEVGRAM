@@ -355,9 +355,14 @@ router.post('/forgot-password', async (request, response) => {
 })
 
 // 5. Current User Profile
-router.get('/me', requireAuth, async (request, response) => {
+router.get('/me', async (request, response) => {
   try {
-    const user = await User.findById(request.user.userId)
+    const token = request.cookies?.devgram_session
+    if (!token) {
+      return response.json({ user: null })
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findById(decoded.userId)
     if (!user) {
       response.clearCookie('devgram_session', {
         httpOnly: true,
@@ -365,12 +370,11 @@ router.get('/me', requireAuth, async (request, response) => {
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         secure: process.env.NODE_ENV === 'production',
       })
-      return response.status(404).json({ message: 'User not found' })
+      return response.json({ user: null })
     }
     return response.json({ user: formatUserResponse(user) })
-  } catch (error) {
-    console.error('Fetch profile failed:', error)
-    return response.status(500).json({ message: 'Server error' })
+  } catch {
+    return response.json({ user: null })
   }
 })
 
