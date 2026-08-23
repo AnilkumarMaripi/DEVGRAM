@@ -71,11 +71,20 @@ function HomeFeed({ activeUser, onLogout }) {
       const res = await fetch(`${API_BASE_URL}/api/messages/${idStr}`, { credentials: 'include' })
       if (res.ok) {
         const history = await res.json()
-        setChatMessagesMap((prev) => ({
-          ...prev,
-          [partnerId]: history,
-          [idStr]: history,
-        }))
+        setChatMessagesMap((prev) => {
+          const currentList = prev[idStr] || []
+          if (
+            currentList.length === history.length &&
+            currentList[currentList.length - 1]?.id === history[history.length - 1]?.id
+          ) {
+            return prev
+          }
+          return {
+            ...prev,
+            [partnerId]: history,
+            [idStr]: history,
+          }
+        })
       }
     } catch (err) {
       console.warn('Fetch chat history error:', err)
@@ -89,7 +98,7 @@ function HomeFeed({ activeUser, onLogout }) {
       fetchConversations()
       const convTimer = setInterval(() => {
         fetchConversations()
-      }, 1000) // Poll conversations list every 1 second
+      }, 2000) // Poll conversations list every 2 seconds
       return () => clearInterval(convTimer)
     }
   }, [activeTab, fetchConversations])
@@ -101,17 +110,18 @@ function HomeFeed({ activeUser, onLogout }) {
         fetchChatHistory(targetId)
         const chatTimer = setInterval(() => {
           fetchChatHistory(targetId)
-        }, 1000) // Poll active chat history every 1 second
+        }, 1500) // Poll active chat history every 1.5 seconds
         return () => clearInterval(chatTimer)
       }
     }
   }, [activeTab, selectedChatUser, fetchChatHistory])
 
+  // Scroll to bottom ONLY when selecting a new chat partner
   useEffect(() => {
     if (selectedChatUser && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [chatMessagesMap, selectedChatUser])
+  }, [selectedChatUser])
 
   // Professional account state
   const [isProfessionalAccount, setIsProfessionalAccount] = useState(
@@ -2245,6 +2255,7 @@ function HomeFeed({ activeUser, onLogout }) {
                                   ...prev,
                                   [targetPartnerId]: [...(prev[targetPartnerId] || []), tempMsg]
                                 }));
+                                setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
 
                                 try {
                                   const res = await fetch(`${API_BASE_URL}/api/messages/${targetPartnerId}`, {
