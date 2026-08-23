@@ -50,6 +50,13 @@ function HomeFeed({ activeUser, onLogout }) {
       if (res.ok) {
         const data = await res.json()
         setChatConversations(data)
+        // Auto-select top conversation if no user is currently selected
+        setSelectedChatUser((current) => {
+          if (!current && data.length > 0) {
+            return data[0]
+          }
+          return current
+        })
       }
     } catch (err) {
       console.warn('Fetch conversations error:', err)
@@ -59,13 +66,15 @@ function HomeFeed({ activeUser, onLogout }) {
   // Fetch persistent chat history between activeUser and selectedChatUser
   const fetchChatHistory = useCallback(async (partnerId) => {
     if (!partnerId) return
+    const idStr = String(partnerId)
     try {
-      const res = await fetch(`${API_BASE_URL}/api/messages/${partnerId}`, { credentials: 'include' })
+      const res = await fetch(`${API_BASE_URL}/api/messages/${idStr}`, { credentials: 'include' })
       if (res.ok) {
         const history = await res.json()
         setChatMessagesMap((prev) => ({
           ...prev,
           [partnerId]: history,
+          [idStr]: history,
         }))
       }
     } catch (err) {
@@ -80,18 +89,21 @@ function HomeFeed({ activeUser, onLogout }) {
       fetchConversations()
       const convTimer = setInterval(() => {
         fetchConversations()
-      }, 3000)
+      }, 1000) // Poll conversations list every 1 second
       return () => clearInterval(convTimer)
     }
   }, [activeTab, fetchConversations])
 
   useEffect(() => {
     if (activeTab === 'direct' && selectedChatUser) {
-      fetchChatHistory(selectedChatUser.id)
-      const chatTimer = setInterval(() => {
-        fetchChatHistory(selectedChatUser.id)
-      }, 2000) // Poll every 2 seconds for real-time instant chat updates
-      return () => clearInterval(chatTimer)
+      const targetId = selectedChatUser.id || selectedChatUser._id
+      if (targetId) {
+        fetchChatHistory(targetId)
+        const chatTimer = setInterval(() => {
+          fetchChatHistory(targetId)
+        }, 1000) // Poll active chat history every 1 second
+        return () => clearInterval(chatTimer)
+      }
     }
   }, [activeTab, selectedChatUser, fetchChatHistory])
 
@@ -2156,67 +2168,79 @@ function HomeFeed({ activeUser, onLogout }) {
                       </div>
 
                       {/* Chat Messages Log */}
-                      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {(chatMessagesMap[selectedChatUser.id] || []).length === 0 ? (
-                          <p style={{ textAlign: 'center', color: '#71717a', fontSize: '0.85rem', margin: 'auto' }}>Say hi to start the conversation! 🚀</p>
-                        ) : (
-                          (chatMessagesMap[selectedChatUser.id] || []).map((msg, i) => {
-                            const isMe = msg.senderId === activeUser?.id || msg.sender === activeUser?.id
-                            return (
-                              <div key={msg.id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%', background: isMe ? '#4f46e5' : '#18181b', color: '#ffffff', padding: '10px 14px', borderRadius: '14px', fontSize: '0.88rem' }}>
-                                {msg.text}
-                              </div>
-                            )
-                          })
-                        )}
-                        <div ref={chatEndRef} />
-                      </div>
+                      {(() => {
+                        const targetPartnerId = selectedChatUser.id || selectedChatUser._id
+                        const activeMessages = (chatMessagesMap[targetPartnerId] || chatMessagesMap[String(targetPartnerId)] || [])
 
-                      {/* Chat Input */}
-                      <form
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          if (!chatInputText.trim() || !selectedChatUser) return;
-                          const messageText = chatInputText.trim();
-                          setChatInputText('');
-                          const tempMsg = { id: `temp-${Date.now()}`, senderId: activeUser?.id, text: messageText, createdAt: new Date().toISOString() };
-                          setChatMessagesMap(prev => ({
-                            ...prev,
-                            [selectedChatUser.id]: [...(prev[selectedChatUser.id] || []), tempMsg]
-                          }));
+                        return (
+                          <>
+                            <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              {activeMessages.length === 0 ? (
+                                <p style={{ textAlign: 'center', color: '#71717a', fontSize: '0.85rem', margin: 'auto' }}>Say hi to start the conversation! 🚀</p>
+                              ) : (
+                                activeMessages.map((msg, i) => {
+                                  const myId = String(activeUser?.id || activeUser?._id || '')
+                                  const senderIdStr = String(msg.senderId || msg.sender?._id || msg.sender || '')
+                                  const isMe = myId && senderIdStr && myId === senderIdStr
 
-                          try {
-                            const res = await fetch(`${API_BASE_URL}/api/messages/${selectedChatUser.id}`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                              body: JSON.stringify({ text: messageText })
-                            })
-                            if (res.ok) {
-                              const savedMsg = await res.json()
-                              setChatMessagesMap(prev => ({
-                                ...prev,
-                                [selectedChatUser.id]: (prev[selectedChatUser.id] || []).map(m => m.id === tempMsg.id ? savedMsg : m)
-                              }))
-                              fetchConversations()
-                            }
-                          } catch (err) {
-                            console.warn('Send message error:', err)
-                          }
-                        }}
-                        style={{ padding: '16px', borderTop: '1px solid #1f1f23', display: 'flex', gap: '10px' }}
-                      >
-                        <input
-                          type="text"
-                          placeholder={`Message ${selectedChatUser.name}...`}
-                          value={chatInputText}
-                          onChange={(e) => setChatInputText(e.target.value)}
-                          style={{ flex: 1, background: '#18181b', border: '1px solid #27272a', borderRadius: '10px', padding: '10px 14px', color: '#ffffff', outline: 'none' }}
-                        />
-                        <button type="submit" style={{ background: '#4f46e5', border: 'none', color: '#ffffff', padding: '0 18px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer' }}>
-                          Send
-                        </button>
-                      </form>
+                                  return (
+                                    <div key={msg.id || msg._id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%', background: isMe ? '#4f46e5' : '#18181b', color: '#ffffff', padding: '10px 14px', borderRadius: '14px', fontSize: '0.88rem' }}>
+                                      {msg.text}
+                                    </div>
+                                  )
+                                })
+                              )}
+                              <div ref={chatEndRef} />
+                            </div>
+
+                            {/* Chat Input */}
+                            <form
+                              onSubmit={async (e) => {
+                                e.preventDefault();
+                                if (!chatInputText.trim() || !selectedChatUser) return;
+                                const messageText = chatInputText.trim();
+                                setChatInputText('');
+                                const tempMsg = { id: `temp-${Date.now()}`, senderId: activeUser?.id || activeUser?._id, text: messageText, createdAt: new Date().toISOString() };
+                                setChatMessagesMap(prev => ({
+                                  ...prev,
+                                  [targetPartnerId]: [...(prev[targetPartnerId] || []), tempMsg]
+                                }));
+
+                                try {
+                                  const res = await fetch(`${API_BASE_URL}/api/messages/${targetPartnerId}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ text: messageText })
+                                  })
+                                  if (res.ok) {
+                                    const savedMsg = await res.json()
+                                    setChatMessagesMap(prev => ({
+                                      ...prev,
+                                      [targetPartnerId]: (prev[targetPartnerId] || []).map(m => m.id === tempMsg.id ? savedMsg : m)
+                                    }))
+                                    fetchConversations()
+                                  }
+                                } catch (err) {
+                                  console.warn('Send message error:', err)
+                                }
+                              }}
+                              style={{ padding: '16px', borderTop: '1px solid #1f1f23', display: 'flex', gap: '10px' }}
+                            >
+                              <input
+                                type="text"
+                                placeholder={`Message ${selectedChatUser.name}...`}
+                                value={chatInputText}
+                                onChange={(e) => setChatInputText(e.target.value)}
+                                style={{ flex: 1, background: '#18181b', border: '1px solid #27272a', borderRadius: '10px', padding: '10px 14px', color: '#ffffff', outline: 'none' }}
+                              />
+                              <button type="submit" style={{ background: '#4f46e5', border: 'none', color: '#ffffff', padding: '0 18px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer' }}>
+                                Send
+                              </button>
+                            </form>
+                          </>
+                        )
+                      })()}
                     </>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#71717a', fontSize: '0.9rem' }}>
