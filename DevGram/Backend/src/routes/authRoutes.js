@@ -796,17 +796,28 @@ router.get('/notifications', requireAuth, async (request, response) => {
       .sort({ createdAt: -1 })
       .limit(50)
 
-    const result = notifications
-      .filter((n) => n.sender)
-      .map((n) => ({
-        id: n._id.toString(),
-        type: n.type,
-        message: n.message,
-        reference_id: n.referenceId ? n.referenceId.toString() : null,
-        is_read: n.isRead,
-        created_at: n.createdAt,
-        sender: formatUserResponse(n.sender),
-      }))
+    const seenMessageSenders = new Set()
+    const uniqueNotifications = []
+
+    for (const n of notifications) {
+      if (!n.sender) continue
+      const senderIdStr = n.sender._id ? n.sender._id.toString() : n.sender.toString()
+      if (n.type === 'message') {
+        if (seenMessageSenders.has(senderIdStr)) continue
+        seenMessageSenders.add(senderIdStr)
+      }
+      uniqueNotifications.push(n)
+    }
+
+    const result = uniqueNotifications.map((n) => ({
+      id: n._id.toString(),
+      type: n.type,
+      message: n.message,
+      reference_id: n.referenceId ? n.referenceId.toString() : null,
+      is_read: n.isRead,
+      created_at: n.createdAt,
+      sender: formatUserResponse(n.sender),
+    }))
 
     return response.json(result)
   } catch (error) {

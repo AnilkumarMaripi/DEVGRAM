@@ -109,16 +109,19 @@ router.post('/:otherUserId', requireAuth, async (request, response) => {
       text: text.trim(),
     })
 
-    // Create notification for recipient
+    // Create or update single notification for recipient from this sender
     try {
       const senderUser = await User.findById(userId)
-      await Notification.create({
-        user: otherUserId,
-        sender: userId,
-        type: 'message',
-        referenceId: newMsg._id,
-        message: `${senderUser.name} sent you a message`,
-      })
+      await Notification.findOneAndUpdate(
+        { user: otherUserId, sender: userId, type: 'message' },
+        {
+          referenceId: newMsg._id,
+          message: `${senderUser.name} sent you a message`,
+          isRead: false,
+          createdAt: new Date(),
+        },
+        { upsert: true, new: true }
+      )
     } catch (notifErr) {
       console.warn('Message notification failed:', notifErr.message)
     }
