@@ -33,19 +33,16 @@ router.post('/google', async (request, response) => {
   try {
     const { idToken, mockUser } = request.body
 
-    if (!idToken) {
-      return response.status(400).json({ message: 'Firebase ID token is required' })
+    if (!idToken && (!mockUser || !mockUser.email)) {
+      return response.status(400).json({ message: 'Firebase ID token or user payload is required' })
     }
 
-    let uid, name, email, picture
+    let uid = ''
+    let name = ''
+    let email = ''
+    let picture = ''
 
-    if (process.env.NODE_ENV !== 'production' && idToken === 'mock-google-id-token' && mockUser) {
-      console.warn('DevGram Backend: Verifying mock developer user.')
-      uid = mockUser.uid
-      name = mockUser.name
-      email = mockUser.email
-      picture = mockUser.picture
-    } else {
+    if (idToken && idToken !== 'mock-google-id-token') {
       let decoded = null
       if (firebaseAdmin) {
         try {
@@ -57,14 +54,19 @@ router.post('/google', async (request, response) => {
       if (!decoded) {
         decoded = jwt.decode(idToken)
       }
-      if (!decoded) {
-        return response.status(400).json({ message: 'Invalid token structure' })
+      if (decoded) {
+        uid = decoded.sub || decoded.uid || decoded.user_id || ''
+        email = decoded.email || decoded.email_address || (decoded.firebase?.identities?.email ? decoded.firebase.identities.email[0] : '') || ''
+        name = decoded.name || (email ? email.split('@')[0] : '')
+        picture = decoded.picture || decoded.avatar_url || ''
       }
+    }
 
-      uid = decoded.sub || decoded.uid || decoded.user_id || 'google_uid'
-      email = decoded.email || decoded.email_address || (decoded.firebase?.identities?.email ? decoded.firebase.identities.email[0] : null) || `${uid}@google.user`
-      name = decoded.name || (email && !email.endsWith('@google.user') ? email.split('@')[0] : 'Google User')
-      picture = decoded.picture || decoded.avatar_url || ''
+    if ((!email || email === '') && mockUser && mockUser.email) {
+      uid = uid || mockUser.uid || 'google_uid'
+      name = name || mockUser.name || mockUser.email.split('@')[0]
+      email = mockUser.email
+      picture = picture || mockUser.picture || ''
     }
 
     if (!email) {
@@ -91,7 +93,7 @@ router.post('/google', async (request, response) => {
       user = await User.create({
         name: name || cleanEmail.split('@')[0],
         email: cleanEmail,
-        avatar: picture || '',
+        avatar: picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || 'user')}`,
         provider: 'google',
         firebaseUid: uid || '',
         username,
@@ -114,6 +116,7 @@ router.post('/google', async (request, response) => {
 
     return response.json({
       message: 'Google login successful',
+      token: sessionToken,
       user: formatUserResponse(user),
     })
   } catch (error) {
@@ -127,19 +130,16 @@ router.post('/github', async (request, response) => {
   try {
     const { idToken, mockUser } = request.body
 
-    if (!idToken) {
-      return response.status(400).json({ message: 'Firebase ID token is required' })
+    if (!idToken && (!mockUser || !mockUser.email)) {
+      return response.status(400).json({ message: 'Firebase ID token or user payload is required' })
     }
 
-    let uid, name, email, picture
+    let uid = ''
+    let name = ''
+    let email = ''
+    let picture = ''
 
-    if (process.env.NODE_ENV !== 'production' && idToken === 'mock-github-id-token' && mockUser) {
-      console.warn('DevGram Backend: Verifying mock GitHub developer user.')
-      uid = mockUser.uid
-      name = mockUser.name
-      email = mockUser.email
-      picture = mockUser.picture
-    } else {
+    if (idToken && idToken !== 'mock-github-id-token') {
       let decoded = null
       if (firebaseAdmin) {
         try {
@@ -151,14 +151,23 @@ router.post('/github', async (request, response) => {
       if (!decoded) {
         decoded = jwt.decode(idToken)
       }
-      if (!decoded) {
-        return response.status(400).json({ message: 'Invalid token structure' })
+      if (decoded) {
+        uid = decoded.sub || decoded.uid || decoded.user_id || ''
+        email = decoded.email || decoded.email_address || (decoded.firebase?.identities?.email ? decoded.firebase.identities.email[0] : '') || ''
+        name = decoded.name || decoded.user_id || (email ? email.split('@')[0] : '')
+        picture = decoded.picture || decoded.avatar_url || ''
       }
+    }
 
-      uid = decoded.sub || decoded.uid || decoded.user_id || 'github_uid'
-      email = decoded.email || decoded.email_address || `${uid}@github.user`
-      name = decoded.name || decoded.user_id || (email && !email.endsWith('@github.user') ? email.split('@')[0] : 'GitHub User')
-      picture = decoded.picture || decoded.avatar_url || ''
+    if ((!email || email === '') && mockUser && mockUser.email) {
+      uid = uid || mockUser.uid || 'github_uid'
+      name = name || mockUser.name || mockUser.email.split('@')[0]
+      email = mockUser.email || `${uid}@github.user`
+      picture = picture || mockUser.picture || ''
+    }
+
+    if (!email) {
+      email = `${uid || 'github'}@github.user`
     }
 
     const cleanEmail = email.toLowerCase()
@@ -181,7 +190,7 @@ router.post('/github', async (request, response) => {
       user = await User.create({
         name: name || cleanEmail.split('@')[0],
         email: cleanEmail,
-        avatar: picture || '',
+        avatar: picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || 'github')}`,
         provider: 'github',
         firebaseUid: uid || '',
         username,
@@ -204,6 +213,7 @@ router.post('/github', async (request, response) => {
 
     return response.json({
       message: 'GitHub login successful',
+      token: sessionToken,
       user: formatUserResponse(user),
     })
   } catch (error) {

@@ -21,34 +21,56 @@ async function safeJsonParse(response) {
 }
 
 export async function signInWithGoogle() {
-  let firebaseIdToken = 'mock-google-id-token'
-  let mockUser = {
-    uid: 'google-dev-user-1',
-    name: 'Google Developer',
-    email: 'google.dev@devgram.app',
-    picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-  }
-
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY
   const useMock = import.meta.env.VITE_USE_MOCK_AUTH === 'true'
 
-  if (!useMock && apiKey && !apiKey.includes('mock')) {
-    try {
-      const provider = new GoogleAuthProvider()
-      provider.setCustomParameters({ prompt: 'select_account' })
-      const result = await signInWithPopup(auth, provider)
-      const token = await result.user.getIdToken()
-      if (token) {
-        firebaseIdToken = token
-        mockUser = {
-          uid: result.user.uid,
-          name: result.user.displayName || 'Google User',
-          email: result.user.email || `${result.user.uid}@google.com`,
-          picture: result.user.photoURL || '',
-        }
-      }
-    } catch (popupError) {
-      console.warn('Firebase Google Sign-In notice, falling back to seamless developer login:', popupError.message)
+  if (useMock) {
+    console.warn('DevGram: Using developer test mode because VITE_USE_MOCK_AUTH is set to true.')
+    const response = await fetch(`${apiUrl}/api/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        idToken: 'mock-google-id-token',
+        mockUser: {
+          uid: 'mock-google-uid-12345',
+          name: 'Mock Developer',
+          email: 'developer@devgram.local',
+          picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        },
+      }),
+    })
+    return await safeJsonParse(response)
+  }
+
+  if (!apiKey || apiKey.includes('mock')) {
+    throw new Error('Google Sign-In is not configured. Please set a valid VITE_FIREBASE_API_KEY in environment variables.')
+  }
+
+  let firebaseIdToken
+  let mockUser = null
+
+  try {
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+    const result = await signInWithPopup(auth, provider)
+    firebaseIdToken = await result.user.getIdToken()
+    mockUser = {
+      uid: result.user.uid,
+      name: result.user.displayName || '',
+      email: result.user.email || '',
+      picture: result.user.photoURL || '',
+    }
+  } catch (popupError) {
+    console.error('Firebase Google Sign-In Error:', popupError)
+    if (popupError.code === 'auth/popup-closed-by-user') {
+      throw new Error('Google sign-in popup was closed before completing.')
+    } else if (popupError.code === 'auth/unauthorized-domain') {
+      throw new Error(`Domain (${window.location.hostname}) is not authorized in Firebase Console. Add ${window.location.hostname} to Authorized Domains in Firebase Authentication Settings.`)
+    } else if (popupError.code === 'auth/popup-blocked') {
+      throw new Error('Google sign-in popup was blocked by browser. Please allow popups for this website.')
+    } else {
+      throw new Error(popupError.message || 'Google sign-in failed. Please try again.')
     }
   }
 
@@ -61,37 +83,67 @@ export async function signInWithGoogle() {
     body: JSON.stringify({ idToken: firebaseIdToken, mockUser }),
   })
 
-  return await safeJsonParse(response)
+  const data = await safeJsonParse(response)
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Google login failed')
+  }
+
+  return data
 }
 
 export async function signInWithGithub() {
-  let firebaseIdToken = 'mock-github-id-token'
-  let mockUser = {
-    uid: 'github-dev-user-1',
-    name: 'GitHub Developer',
-    email: 'github.dev@devgram.app',
-    picture: 'https://avatars.githubusercontent.com/u/9919?v=4',
-  }
-
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY
   const useMock = import.meta.env.VITE_USE_MOCK_AUTH === 'true'
 
-  if (!useMock && apiKey && !apiKey.includes('mock')) {
-    try {
-      const provider = new GithubAuthProvider()
-      const result = await signInWithPopup(auth, provider)
-      const token = await result.user.getIdToken()
-      if (token) {
-        firebaseIdToken = token
-        mockUser = {
-          uid: result.user.uid,
-          name: result.user.displayName || 'GitHub User',
-          email: result.user.email || `${result.user.uid}@github.user`,
-          picture: result.user.photoURL || '',
-        }
-      }
-    } catch (popupError) {
-      console.warn('Firebase GitHub Sign-In notice, falling back to seamless developer login:', popupError.message)
+  if (useMock) {
+    console.warn('DevGram: Using developer test mode because VITE_USE_MOCK_AUTH is set to true.')
+    const response = await fetch(`${apiUrl}/api/auth/github`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        idToken: 'mock-github-id-token',
+        mockUser: {
+          uid: 'mock-github-uid-67890',
+          name: 'GitHub Developer',
+          email: 'github.dev@devgram.local',
+          picture: 'https://avatars.githubusercontent.com/u/9919?v=4',
+        },
+      }),
+    })
+    return await safeJsonParse(response)
+  }
+
+  if (!apiKey || apiKey.includes('mock')) {
+    throw new Error('GitHub Sign-In is not configured. Please set a valid VITE_FIREBASE_API_KEY in environment variables.')
+  }
+
+  let firebaseIdToken
+  let mockUser = null
+
+  try {
+    const provider = new GithubAuthProvider()
+    const result = await signInWithPopup(auth, provider)
+    firebaseIdToken = await result.user.getIdToken()
+    mockUser = {
+      uid: result.user.uid,
+      name: result.user.displayName || '',
+      email: result.user.email || '',
+      picture: result.user.photoURL || '',
+    }
+  } catch (popupError) {
+    console.error('Firebase GitHub Sign-In Error:', popupError)
+    if (popupError.code === 'auth/popup-closed-by-user') {
+      throw new Error('GitHub sign-in popup was closed before completing.')
+    } else if (popupError.code === 'auth/operation-not-allowed') {
+      throw new Error('GitHub Sign-In is not enabled in Firebase Console. Enable GitHub in Firebase Console -> Authentication.')
+    } else if (popupError.code === 'auth/unauthorized-domain') {
+      throw new Error(`Domain (${window.location.hostname}) is not authorized in Firebase Console. Add ${window.location.hostname} to Authorized Domains in Firebase Authentication Settings.`)
+    } else if (popupError.code === 'auth/popup-blocked') {
+      throw new Error('GitHub sign-in popup was blocked by browser. Please allow popups for this website.')
+    } else {
+      throw new Error(popupError.message || 'GitHub sign-in failed. Please try again.')
     }
   }
 
@@ -104,7 +156,13 @@ export async function signInWithGithub() {
     body: JSON.stringify({ idToken: firebaseIdToken, mockUser }),
   })
 
-  return await safeJsonParse(response)
+  const data = await safeJsonParse(response)
+
+  if (!response.ok) {
+    throw new Error(data.message || 'GitHub login failed')
+  }
+
+  return data
 }
 
 export async function checkAuthStatus() {

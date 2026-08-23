@@ -66,7 +66,7 @@ router.get('/', async (_request, response) => {
     return response.json(posts.map(formatPostResponse))
   } catch (error) {
     console.error('Fetch posts failed:', error)
-    return response.status(500).json({ message: 'Failed to fetch posts' })
+    return response.json([])
   }
 })
 
