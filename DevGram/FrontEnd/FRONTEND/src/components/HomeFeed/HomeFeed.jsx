@@ -1762,10 +1762,10 @@ function HomeFeed({ activeUser, onLogout }) {
                     <button
                       type="button"
                       onClick={() => {
-                        if (connections.some(c => c.id === profileUser.id)) {
-                          alert(`Direct Message channel to ${profileUser.name} initiated.`)
-                        } else {
-                          alert(`Security Lock: You must follow ${profileUser.name} before initiating direct messaging.`)
+                        if (profileUser) {
+                          setSelectedChatUser(profileUser)
+                          setProfileUser(null)
+                          setActiveTab('direct')
                         }
                       }}
                       style={{
@@ -2181,26 +2181,49 @@ function HomeFeed({ activeUser, onLogout }) {
                       })
                       const userList = Array.from(allChatUsersMap.values())
 
-                      return userList.map((user) => (
-                        <div
-                          key={user.id}
-                          onClick={() => setSelectedChatUser(user)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', cursor: 'pointer',
-                            background: selectedChatUser?.id === user.id ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
-                            borderLeft: selectedChatUser?.id === user.id ? '3px solid #818cf8' : '3px solid transparent',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          <img src={user.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                          <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-                            <div style={{ fontSize: '0.78rem', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {chatMessagesMap[user.id]?.slice(-1)[0]?.text || user.lastMsg || `@${user.username}`}
+                      return userList.map((user) => {
+                        const targetId = String(user.id || user._id)
+                        const isSelected = String(selectedChatUser?.id || selectedChatUser?._id) === targetId
+
+                        return (
+                          <div
+                            key={targetId}
+                            onClick={() => setSelectedChatUser(user)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', cursor: 'pointer',
+                              background: isSelected ? 'rgba(79, 70, 229, 0.15)' : 'transparent',
+                              borderLeft: isSelected ? '3px solid #818cf8' : '3px solid transparent',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{ position: 'relative', flexShrink: 0 }}>
+                              <img src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                              <span style={{
+                                position: 'absolute',
+                                bottom: '0',
+                                right: '0',
+                                width: '11px',
+                                height: '11px',
+                                borderRadius: '50%',
+                                background: user.isOnline ? '#22c55e' : '#71717a',
+                                border: '2px solid #08080a',
+                                boxShadow: user.isOnline ? '0 0 8px rgba(34, 197, 94, 0.9)' : 'none'
+                              }} title={user.isOnline ? 'Online' : 'Offline'} />
+                            </div>
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</span>
+                                <span style={{ fontSize: '0.7rem', color: user.isOnline ? '#4ade80' : '#71717a', fontWeight: '600' }}>
+                                  {user.isOnline ? '🟢 Online' : '⚪ Offline'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: '#a1a1aa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {chatMessagesMap[targetId]?.slice(-1)[0]?.text || user.lastMsg || `@${user.username}`}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        )
+                      })
                     })()}
                   </div>
                 </div>
@@ -2210,10 +2233,25 @@ function HomeFeed({ activeUser, onLogout }) {
                   {selectedChatUser ? (
                     <>
                       <div style={{ padding: '12px 20px', borderBottom: '1px solid #1f1f23', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src={selectedChatUser.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <img src={selectedChatUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <span style={{
+                            position: 'absolute',
+                            bottom: '0',
+                            right: '0',
+                            width: '11px',
+                            height: '11px',
+                            borderRadius: '50%',
+                            background: selectedChatUser.isOnline ? '#22c55e' : '#71717a',
+                            border: '2px solid #09090b',
+                            boxShadow: selectedChatUser.isOnline ? '0 0 8px rgba(34, 197, 94, 0.9)' : 'none'
+                          }} />
+                        </div>
                         <div>
                           <strong style={{ display: 'block', fontSize: '0.95rem', color: '#ffffff' }}>{selectedChatUser.name}</strong>
-                          <span style={{ fontSize: '0.78rem', color: '#818cf8' }}>@{selectedChatUser.username || 'builder'}</span>
+                          <span style={{ fontSize: '0.78rem', color: selectedChatUser.isOnline ? '#4ade80' : '#a1a1aa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {selectedChatUser.isOnline ? '🟢 Active Now' : '⚪ Offline'} • @{selectedChatUser.username || 'builder'}
+                          </span>
                         </div>
                       </div>
 
@@ -2604,22 +2642,48 @@ function HomeFeed({ activeUser, onLogout }) {
                     <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#ffffff', cursor: 'pointer' }} onClick={() => setActiveTab('explore')}>See All</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {builders.filter(b => b.id !== activeUser?.id).length === 0 ? (
-                      <div style={{ fontSize: '0.8rem', color: '#71717a', padding: '6px 0' }}>
-                        No other registered builders yet.
-                      </div>
-                    ) : (
-                      builders.filter(b => b.id !== activeUser?.id).slice(0, 5).map(suggested => {
-                        const isConnected = connections.some(c => c.id === suggested.id)
-                        const isRequested = sentRequests.includes(suggested.id)
+                    {(() => {
+                      const myIdStr = String(activeUser?.id || activeUser?._id || '')
+                      const otherBuilders = builders.filter(b => {
+                        const bIdStr = String(b.id || b._id || '')
+                        return bIdStr && bIdStr !== myIdStr
+                      })
+
+                      if (otherBuilders.length === 0) {
+                        return (
+                          <div style={{ fontSize: '0.8rem', color: '#71717a', padding: '6px 0' }}>
+                            No other registered builders yet.
+                          </div>
+                        )
+                      }
+
+                      return otherBuilders.slice(0, 10).map(suggested => {
+                        const targetId = String(suggested.id || suggested._id)
+                        const isConnected = connections.some(c => String(c.id || c._id) === targetId)
+                        const isRequested = sentRequests.includes(targetId)
 
                         return (
-                          <div key={suggested.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div key={targetId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setProfileUser(suggested)}>
-                              <img src={suggested.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                              <div style={{ position: 'relative', flexShrink: 0 }}>
+                                <img src={suggested.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                                <span style={{
+                                  position: 'absolute',
+                                  bottom: '0',
+                                  right: '0',
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  background: suggested.isOnline ? '#22c55e' : '#71717a',
+                                  border: '2px solid #09090b',
+                                  boxShadow: suggested.isOnline ? '0 0 6px rgba(34, 197, 94, 0.8)' : 'none'
+                                }} title={suggested.isOnline ? 'Online' : 'Offline'} />
+                              </div>
                               <div>
                                 <strong style={{ display: 'block', fontSize: '0.85rem', color: '#ffffff' }}>@{suggested.username || 'builder'}</strong>
-                                <span style={{ fontSize: '0.75rem', color: '#71717a' }}>{suggested.name}</span>
+                                <span style={{ fontSize: '0.74rem', color: suggested.isOnline ? '#4ade80' : '#71717a', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
+                                  {suggested.isOnline ? '🟢 Online' : '⚪ Offline'}
+                                </span>
                               </div>
                             </div>
                             {isRequested ? (
@@ -2627,7 +2691,7 @@ function HomeFeed({ activeUser, onLogout }) {
                             ) : isConnected ? (
                               <button
                                 type="button"
-                                onClick={() => handleToggleConnection(suggested.id)}
+                                onClick={() => handleToggleConnection(targetId)}
                                 style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Following
@@ -2635,7 +2699,7 @@ function HomeFeed({ activeUser, onLogout }) {
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => handleSendFollowRequest(suggested.id)}
+                                onClick={() => handleSendFollowRequest(targetId)}
                                 style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Follow
@@ -2644,7 +2708,7 @@ function HomeFeed({ activeUser, onLogout }) {
                           </div>
                         )
                       })
-                    )}
+                    })()}
                   </div>
                 </div>
 

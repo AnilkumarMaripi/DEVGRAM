@@ -13,6 +13,10 @@ const router = express.Router()
 
 // Helper to sanitize user object for client response
 function formatUserResponse(user) {
+  const lastActiveTime = user.lastActive ? new Date(user.lastActive).getTime() : (user.updatedAt ? new Date(user.updatedAt).getTime() : 0)
+  // Active within 60 seconds is considered online
+  const isOnline = Boolean(lastActiveTime && (Date.now() - lastActiveTime < 60000))
+
   return {
     id: user._id ? user._id.toString() : user.id,
     name: user.name,
@@ -25,6 +29,8 @@ function formatUserResponse(user) {
     website: user.website || '',
     showDevBadge: user.showDevBadge !== undefined ? user.showDevBadge : true,
     isAiCreator: user.isAiCreator !== undefined ? user.isAiCreator : false,
+    isOnline: isOnline,
+    lastActive: user.lastActive || user.updatedAt || user.createdAt,
   }
 }
 
