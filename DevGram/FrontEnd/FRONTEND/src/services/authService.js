@@ -51,7 +51,7 @@ export async function signInWithGoogle() {
       if (popupError.code === 'auth/popup-closed-by-user') {
         throw new Error('Google sign-in popup was closed before completing.')
       } else if (popupError.code === 'auth/unauthorized-domain') {
-        throw new Error('Domain not authorized in Firebase Console. Please add localhost to Authorized Domains in Firebase.')
+        throw new Error(`Domain (${window.location.hostname}) not authorized in Firebase Console. Please add ${window.location.hostname} to Authorized Domains in Firebase.`)
       } else if (popupError.code === 'auth/popup-blocked') {
         throw new Error('Google sign-in popup was blocked by browser. Please allow popups for this site.')
       } else {
@@ -110,7 +110,7 @@ export async function signInWithGithub() {
       } else if (popupError.code === 'auth/operation-not-allowed') {
         throw new Error('GitHub Sign-In is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Sign-in method and enable GitHub.')
       } else if (popupError.code === 'auth/unauthorized-domain') {
-        throw new Error('Domain not authorized in Firebase Console. Please add localhost to Authorized Domains in Firebase.')
+        throw new Error(`Domain (${window.location.hostname}) not authorized in Firebase Console. Please add ${window.location.hostname} to Authorized Domains in Firebase.`)
       } else if (popupError.code === 'auth/popup-blocked') {
         throw new Error('GitHub sign-in popup was blocked by browser. Please allow popups for this site.')
       } else if (popupError.code === 'auth/invalid-credential' || (popupError.message && popupError.message.includes('incorrect_client_credentials'))) {
