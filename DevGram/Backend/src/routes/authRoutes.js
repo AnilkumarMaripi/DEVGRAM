@@ -46,35 +46,25 @@ router.post('/google', async (request, response) => {
       email = mockUser.email
       picture = mockUser.picture
     } else {
-      if (!firebaseAdmin) {
-        console.warn('⚠️ Firebase Admin SDK not initialized. Decoding client-verified ID token.')
-        const decoded = jwt.decode(idToken)
-        if (!decoded) {
-          return response.status(400).json({ message: 'Invalid token structure' })
-        }
-        uid = decoded.sub || decoded.uid || decoded.user_id
-        name = decoded.name || (email ? email.split('@')[0] : 'Google User')
-        email = decoded.email
-        picture = decoded.picture || ''
-      } else {
+      let decoded = null
+      if (firebaseAdmin) {
         try {
-          const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken)
-          uid = decodedToken.uid
-          name = decodedToken.name
-          email = decodedToken.email
-          picture = decodedToken.picture
+          decoded = await firebaseAdmin.auth().verifyIdToken(idToken)
         } catch (verifyErr) {
           console.warn('⚠️ Firebase verifyIdToken failed, decoding token directly:', verifyErr.message)
-          const decoded = jwt.decode(idToken)
-          if (!decoded) {
-            return response.status(400).json({ message: 'Invalid token structure' })
-          }
-          uid = decoded.sub || decoded.uid || decoded.user_id
-          name = decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Google User')
-          email = decoded.email
-          picture = decoded.picture || ''
         }
       }
+      if (!decoded) {
+        decoded = jwt.decode(idToken)
+      }
+      if (!decoded) {
+        return response.status(400).json({ message: 'Invalid token structure' })
+      }
+
+      uid = decoded.sub || decoded.uid || decoded.user_id || 'google_uid'
+      email = decoded.email || decoded.email_address || (decoded.firebase?.identities?.email ? decoded.firebase.identities.email[0] : null) || `${uid}@google.user`
+      name = decoded.name || (email && !email.endsWith('@google.user') ? email.split('@')[0] : 'Google User')
+      picture = decoded.picture || decoded.avatar_url || ''
     }
 
     if (!email) {
@@ -128,7 +118,7 @@ router.post('/google', async (request, response) => {
     })
   } catch (error) {
     console.error('Google auth failed:', error)
-    return response.status(401).json({ message: 'Invalid or expired Firebase token' })
+    return response.status(400).json({ message: error.message || 'Google authentication failed' })
   }
 })
 
@@ -150,23 +140,25 @@ router.post('/github', async (request, response) => {
       email = mockUser.email
       picture = mockUser.picture
     } else {
-      if (!firebaseAdmin) {
-        console.warn('⚠️ Firebase Admin SDK not initialized. Decoding client-verified GitHub ID token.')
-        const decoded = jwt.decode(idToken)
-        if (!decoded) {
-          return response.status(400).json({ message: 'Invalid token structure' })
+      let decoded = null
+      if (firebaseAdmin) {
+        try {
+          decoded = await firebaseAdmin.auth().verifyIdToken(idToken)
+        } catch (verifyErr) {
+          console.warn('⚠️ Firebase verifyIdToken failed, decoding token directly:', verifyErr.message)
         }
-        uid = decoded.sub || decoded.uid || decoded.user_id
-        name = decoded.name || decoded.user_id || 'GitHub User'
-        email = decoded.email || `${uid || 'github'}@github.user`
-        picture = decoded.picture || ''
-      } else {
-        const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken)
-        uid = decodedToken.uid
-        name = decodedToken.name || decodedToken.user_id || 'GitHub User'
-        email = decodedToken.email || `${decodedToken.uid}@github.user`
-        picture = decodedToken.picture || ''
       }
+      if (!decoded) {
+        decoded = jwt.decode(idToken)
+      }
+      if (!decoded) {
+        return response.status(400).json({ message: 'Invalid token structure' })
+      }
+
+      uid = decoded.sub || decoded.uid || decoded.user_id || 'github_uid'
+      email = decoded.email || decoded.email_address || `${uid}@github.user`
+      name = decoded.name || decoded.user_id || (email && !email.endsWith('@github.user') ? email.split('@')[0] : 'GitHub User')
+      picture = decoded.picture || decoded.avatar_url || ''
     }
 
     const cleanEmail = email.toLowerCase()
@@ -216,7 +208,7 @@ router.post('/github', async (request, response) => {
     })
   } catch (error) {
     console.error('GitHub auth failed:', error)
-    return response.status(401).json({ message: 'Invalid or expired Firebase token' })
+    return response.status(400).json({ message: error.message || 'GitHub authentication failed' })
   }
 })
 
