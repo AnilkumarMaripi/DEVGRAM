@@ -4,8 +4,11 @@ import 'dotenv/config'
 import express from 'express'
 import mongoose from 'mongoose'
 import { connectDatabase } from './config/db.js'
+import { connectPostgres } from './config/pgDb.js'
 import authRoutes from './routes/authRoutes.js'
 import postRoutes from './routes/postRoutes.js'
+import storyRoutes from './routes/storyRoutes.js'
+import Story from './models/Story.js'
 
 process.on('uncaughtException', (err) => console.error('Uncaught Error:', err));
 process.on('unhandledRejection', (reason) => console.error('Unhandled Rejection:', reason));
@@ -66,8 +69,25 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
+app.use('/api/stories', storyRoutes)
 
 await connectDatabase()
+await connectPostgres()
+
+// Scheduled 24h story cleanup task (purges expired stories every hour)
+const purgeExpiredStories = async () => {
+  try {
+    const res = await Story.deleteMany({ expiresAt: { $lte: new Date() } })
+    if (res.deletedCount > 0) {
+      console.log(`🧹 Purged ${res.deletedCount} expired stories.`)
+    }
+  } catch (err) {
+    console.error('Expired stories cleanup error:', err)
+  }
+}
+
+purgeExpiredStories()
+setInterval(purgeExpiredStories, 60 * 60 * 1000)
 
 app.listen(port, () => {
   console.log(`DevGram API running on http://localhost:${port}`)

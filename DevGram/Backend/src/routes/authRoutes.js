@@ -124,6 +124,98 @@ router.post('/google', async (request, response) => {
   }
 })
 
+// 1b. GitHub OAuth Upsert
+router.post('/github', async (request, response) => {
+  try {
+    const { idToken, mockUser } = request.body
+
+    if (!idToken) {
+      return response.status(400).json({ message: 'Firebase ID token is required' })
+    }
+
+    let uid, name, email, picture
+
+    if (process.env.NODE_ENV !== 'production' && idToken === 'mock-github-id-token' && mockUser) {
+      console.warn('DevGram Backend: Verifying mock GitHub developer user.')
+      uid = mockUser.uid
+      name = mockUser.name
+      email = mockUser.email
+      picture = mockUser.picture
+    } else {
+      if (!firebaseAdmin) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('⚠️ Firebase Admin SDK is not initialized. Decoding ID token without verification for development.')
+          const decoded = jwt.decode(idToken)
+          if (!decoded) {
+            return response.status(400).json({ message: 'Invalid token structure' })
+          }
+          uid = decoded.sub || decoded.uid
+          name = decoded.name || decoded.user_id || 'GitHub User'
+          email = decoded.email || `${uid || 'github'}@github.user`
+          picture = decoded.picture || ''
+        } else {
+          return response.status(500).json({ message: 'Firebase Admin SDK is not initialized' })
+        }
+      } else {
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken)
+        uid = decodedToken.uid
+        name = decodedToken.name || decodedToken.user_id || 'GitHub User'
+        email = decodedToken.email || `${decodedToken.uid}@github.user`
+        picture = decodedToken.picture || ''
+      }
+    }
+
+    const cleanEmail = email.toLowerCase()
+    let user = await User.findOne({ email: cleanEmail })
+
+    if (user) {
+      user.name = name || user.name
+      user.avatar = picture || user.avatar
+      if (uid) user.firebaseUid = uid
+      await user.save()
+    } else {
+      const baseUsername = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'githubber'
+      let username = baseUsername
+      let suffix = 1
+      while (await User.findOne({ username })) {
+        username = `${baseUsername}_${suffix}`
+        suffix++
+      }
+
+      user = await User.create({
+        name: name || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        avatar: picture || '',
+        provider: 'github',
+        firebaseUid: uid || '',
+        username,
+      })
+    }
+
+    const sessionToken = jwt.sign(
+      { userId: user._id.toString(), email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' },
+    )
+
+    response.cookie('devgram_session', sessionToken, {
+      httpOnly: true,
+      path: '/',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    })
+
+    return response.json({
+      message: 'GitHub login successful',
+      user: formatUserResponse(user),
+    })
+  } catch (error) {
+    console.error('GitHub auth failed:', error)
+    return response.status(401).json({ message: 'Invalid or expired Firebase token' })
+  }
+})
+
 // 2. Local Registration (Sign Up)
 router.post('/register', async (request, response) => {
   try {
