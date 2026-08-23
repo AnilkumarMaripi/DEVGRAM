@@ -4,8 +4,8 @@ const rawApiUrl = import.meta.env.VITE_API_URL
 function cleanUrl(url) {
   if (!url || typeof url !== 'string') return ''
   const trimmed = url.trim()
-  const match = trimmed.match(/(https?:\/\/[a-zA-Z0-9.-]+(?::\d+)?)/i)
-  return match ? match[1] : trimmed.replace(/\/$/, '')
+  const match = trimmed.match(/(https?:\/\/[a-z0-9-]+\.(onrender\.com|vercel\.app|github\.io|com|net|org)|https?:\/\/localhost(:\d+)?)/i)
+  return match ? match[0] : ''
 }
 
 const derivedUrl = cleanUrl(rawApiUrl)
