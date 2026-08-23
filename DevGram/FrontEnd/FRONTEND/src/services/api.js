@@ -1,8 +1,17 @@
 // DevGram Centralized API Client Config
 const rawApiUrl = import.meta.env.VITE_API_URL
 
-export const API_BASE_URL = (rawApiUrl && rawApiUrl.trim() !== '')
-  ? rawApiUrl.trim().replace(/\/$/, '')
+function cleanUrl(url) {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  const match = trimmed.match(/(https?:\/\/[a-zA-Z0-9.-]+(?::\d+)?)/i)
+  return match ? match[1] : trimmed.replace(/\/$/, '')
+}
+
+const derivedUrl = cleanUrl(rawApiUrl)
+
+export const API_BASE_URL = (derivedUrl && derivedUrl !== '')
+  ? derivedUrl
   : (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
     ? 'https://devgram-backend-q8uu.onrender.com'
     : 'http://localhost:5000'
