@@ -71,23 +71,30 @@ app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
 app.use('/api/stories', storyRoutes)
 
-await connectDatabase()
-await connectPostgres()
+try {
+  await connectDatabase()
+  await connectPostgres()
+} catch (dbErr) {
+  console.error('⚠️ Database initialization notice:', dbErr.message)
+}
 
 // Scheduled 24h story cleanup task (purges expired stories every hour)
 const purgeExpiredStories = async () => {
+  if (mongoose.connection.readyState !== 1) return
   try {
     const res = await Story.deleteMany({ expiresAt: { $lte: new Date() } })
     if (res.deletedCount > 0) {
       console.log(`🧹 Purged ${res.deletedCount} expired stories.`)
     }
   } catch (err) {
-    console.error('Expired stories cleanup error:', err)
+    console.error('Expired stories cleanup error:', err.message)
   }
 }
 
-purgeExpiredStories()
-setInterval(purgeExpiredStories, 60 * 60 * 1000)
+if (mongoose.connection.readyState === 1) {
+  purgeExpiredStories()
+  setInterval(purgeExpiredStories, 60 * 60 * 1000)
+}
 
 app.listen(port, () => {
   console.log(`DevGram API running on http://localhost:${port}`)

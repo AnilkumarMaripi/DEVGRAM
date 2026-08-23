@@ -1,39 +1,56 @@
 import mongoose from 'mongoose'
 
+// Configure Mongoose connection event listeners
+mongoose.connection.on('connected', () => {
+  console.log('✅ Mongoose connection event: Connected to MongoDB')
+})
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Mongoose connection event: Error:', err.message)
+})
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ Mongoose connection event: Disconnected from MongoDB')
+})
+
+mongoose.connection.on('reconnected', () => {
+  console.log('🔄 Mongoose connection event: Reconnected to MongoDB')
+})
+
 export async function connectDatabase() {
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE_URL
 
   if (!uri) {
-    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-      console.error('❌ CRITICAL CONFIGURATION ERROR: No MongoDB connection string provided in environment variables!')
-      console.error('👉 Please set MONGO_URI (or MONGODB_URI) in your Render environment settings.')
-    }
+    console.warn('⚠️ No MONGO_URI provided in environment. Defaulting to local MongoDB / In-Memory server.')
   }
 
   const targetUri = uri || 'mongodb://127.0.0.1:27017/devgram'
+  const sanitizedUri = targetUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
 
   try {
-    await mongoose.connect(targetUri, { serverSelectionTimeoutMS: 5000 })
-    const sanitizedUri = targetUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
-    console.log(`✅ MongoDB connected successfully (${sanitizedUri})`)
+    console.log(`🔌 Connecting to MongoDB at ${sanitizedUri}...`)
+    await mongoose.connect(targetUri, {
+      serverSelectionTimeoutMS: 5000,
+      bufferCommands: false, // Disable buffering so failed DB connections throw immediately instead of hanging 10000ms
+    })
+    console.log(`✅ MongoDB primary connection established successfully (${sanitizedUri})`)
+    return
   } catch (err) {
-    const sanitizedUri = targetUri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')
-    console.warn(`⚠️ Primary MongoDB connection failed for ${sanitizedUri} (${err.message})`)
+    console.warn(`⚠️ Primary MongoDB connection failed for ${sanitizedUri}: ${err.message}`)
+  }
 
-    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
-      console.error('❌ Production database connection failed. Ensure 0.0.0.0/0 is added to MongoDB Atlas Network Access.')
-      return
-    }
-
-    console.log('🔄 Attempting to spin up In-Memory MongoDB server for local development...')
-    try {
-      const { MongoMemoryServer } = await import('mongodb-memory-server')
-      const mongoServer = await MongoMemoryServer.create()
-      const mongoUri = mongoServer.getUri()
-      await mongoose.connect(mongoUri)
-      console.log(`✅ In-Memory MongoDB server connected successfully (${mongoUri})`)
-    } catch (memErr) {
-      console.error(`❌ Could not start In-Memory MongoDB fallback: ${memErr.message}`)
+  // Fallback: Attempt In-Memory MongoDB server for local development or missing URI
+  console.log('🔄 Attempting In-Memory MongoDB server fallback...')
+  try {
+    const { MongoMemoryServer } = await import('mongodb-memory-server')
+    const mongoServer = await MongoMemoryServer.create()
+    const mongoUri = mongoServer.getUri()
+    await mongoose.connect(mongoUri, { bufferCommands: false })
+    console.log(`✅ In-Memory MongoDB server connected successfully (${mongoUri})`)
+  } catch (memErr) {
+    console.error(`❌ In-Memory MongoDB fallback failed: ${memErr.message}`)
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error(`Database connection failed completely. Ensure MONGO_URI is set or MongoDB Atlas IP whitelist (0.0.0.0/0) is configured. Error: ${memErr.message}`)
     }
   }
 }
