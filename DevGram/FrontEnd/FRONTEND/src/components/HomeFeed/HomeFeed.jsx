@@ -741,6 +741,16 @@ function HomeFeed({ activeUser, onLogout }) {
 
   // Handle connection toggle (unfollow)
   const handleToggleConnection = async (targetUserId) => {
+    // Instant Optimistic UI Update
+    setConnections(prev => {
+      if (prev.some(c => c.id === targetUserId)) {
+        return prev.filter(c => c.id !== targetUserId)
+      } else {
+        const foundBuilder = builders.find(b => b.id === targetUserId)
+        return foundBuilder ? [...prev, foundBuilder] : prev
+      }
+    })
+
     try {
       await toggleConnection(targetUserId)
       const connData = await fetchConnections()
@@ -764,17 +774,22 @@ function HomeFeed({ activeUser, onLogout }) {
       }
     } catch (err) {
       console.error('Failed to toggle connection:', err)
+      loadBuildersData()
     }
   }
 
   // Send follow request
   const handleSendFollowRequest = async (targetUserId) => {
+    // Instant Optimistic UI Update
+    setSentRequests(prev => Array.from(new Set([...prev, targetUserId])))
+
     try {
       await sendFollowRequest(targetUserId)
       const sentData = await fetchSentFollowRequests()
       setSentRequests(sentData)
     } catch (err) {
       console.error('Failed to send follow request:', err)
+      setSentRequests(prev => prev.filter(id => id !== targetUserId))
     }
   }
 
@@ -2478,24 +2493,41 @@ function HomeFeed({ activeUser, onLogout }) {
                         No other registered builders yet.
                       </div>
                     ) : (
-                      builders.filter(b => b.id !== activeUser?.id).slice(0, 5).map(suggested => (
-                        <div key={suggested.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setProfileUser(suggested)}>
-                            <img src={suggested.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                            <div>
-                              <strong style={{ display: 'block', fontSize: '0.85rem', color: '#ffffff' }}>@{suggested.username || 'builder'}</strong>
-                              <span style={{ fontSize: '0.75rem', color: '#71717a' }}>{suggested.name}</span>
+                      builders.filter(b => b.id !== activeUser?.id).slice(0, 5).map(suggested => {
+                        const isConnected = connections.some(c => c.id === suggested.id)
+                        const isRequested = sentRequests.includes(suggested.id)
+
+                        return (
+                          <div key={suggested.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setProfileUser(suggested)}>
+                              <img src={suggested.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                              <div>
+                                <strong style={{ display: 'block', fontSize: '0.85rem', color: '#ffffff' }}>@{suggested.username || 'builder'}</strong>
+                                <span style={{ fontSize: '0.75rem', color: '#71717a' }}>{suggested.name}</span>
+                              </div>
                             </div>
+                            {isRequested ? (
+                              <span style={{ color: '#a1a1aa', fontWeight: '700', fontSize: '0.78rem' }}>Requested</span>
+                            ) : isConnected ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleConnection(suggested.id)}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
+                              >
+                                Following
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSendFollowRequest(suggested.id)}
+                                style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
+                              >
+                                Follow
+                              </button>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleSendFollowRequest(suggested.id)}
-                            style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
-                          >
-                            Follow
-                          </button>
-                        </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 </div>
