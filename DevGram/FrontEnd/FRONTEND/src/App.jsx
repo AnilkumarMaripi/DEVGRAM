@@ -58,36 +58,36 @@ function App() {
       console.error('Logout failed:', error)
     } finally {
       setActiveUser(null)
-      setPage(pendingTargetPage || 'login')
+      setPageInternal('login')
+      updateUrl('login')
     }
   }
 
   const handleCancelLogoutNav = () => {
     setShowNavConfirmModal(false)
-    if (activeUser && page === 'home') {
+    if (activeUser) {
+      setPageInternal('home')
       updateUrl('home')
     }
   }
 
+  // Trap browser back button when logged in on home page
   useEffect(() => {
-    const handleNavigationChange = () => {
-      const targetPage = getPageFromPath(window.location.pathname)
+    if (!activeUser || page !== 'home') return
 
-      // If user is logged in on home page and tries to go back to login/landing
-      if (activeUser && page === 'home' && targetPage !== 'home') {
-        updateUrl('home')
-        requestLogoutOrNav(targetPage === 'landing' ? 'login' : targetPage)
-        return
-      }
+    // Push state so pressing Back triggers popstate without leaving page immediately
+    window.history.pushState({ page: 'home' }, '', window.location.href)
 
-      setPageInternal(targetPage)
+    const handlePopState = (e) => {
+      // Re-push home state to lock URL
+      window.history.pushState({ page: 'home' }, '', window.location.href)
+      setPendingTargetPage('login')
+      setShowNavConfirmModal(true)
     }
 
-    window.addEventListener('popstate', handleNavigationChange)
-    window.addEventListener('hashchange', handleNavigationChange)
+    window.addEventListener('popstate', handlePopState)
     return () => {
-      window.removeEventListener('popstate', handleNavigationChange)
-      window.removeEventListener('hashchange', handleNavigationChange)
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [activeUser, page])
 

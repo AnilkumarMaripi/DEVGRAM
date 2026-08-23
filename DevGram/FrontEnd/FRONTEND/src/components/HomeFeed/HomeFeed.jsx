@@ -1311,7 +1311,7 @@ function HomeFeed({ activeUser, onLogout }) {
           </div>
 
           {/* Item 10: More (3-Line Rounded Hamburger Icon from User Screenshot - Positioned strictly at Bottom) */}
-          <div style={{ width: '100%' }}>
+          <div style={{ width: '100%', position: 'relative' }}>
             <button
               type="button"
               className={`devgram-nav-btn ${showMoreMenu ? 'active' : ''}`}
@@ -1323,6 +1323,46 @@ function HomeFeed({ activeUser, onLogout }) {
               </svg>
               <span className="nav-text">More</span>
             </button>
+
+            {showMoreMenu && (
+              <div style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: '10px',
+                background: '#09090b',
+                border: '1px solid #1f1f23',
+                borderRadius: '14px',
+                width: '200px',
+                padding: '8px',
+                zIndex: 99999,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    onLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 14px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '10px',
+                    color: '#ef4444',
+                    fontWeight: '700',
+                    fontSize: '0.88rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚪 Log Out / Switch
+                </button>
+              </div>
+            )}
           </div>
         </nav>
       </aside>
