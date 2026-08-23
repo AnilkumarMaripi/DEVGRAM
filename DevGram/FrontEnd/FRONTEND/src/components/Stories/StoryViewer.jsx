@@ -56,6 +56,9 @@ function StoryViewer({ userGroups, initialUserIdx = 0, onClose, onStorySeen, onD
     }
   }, [currentStoryIdx, currentUserIdx, userGroups])
 
+  const handleNextRef = useRef()
+  handleNextRef.current = handleNext
+
   // Timer loop for active story progress bar
   useEffect(() => {
     if (isPaused || !activeStory) return
@@ -67,7 +70,7 @@ function StoryViewer({ userGroups, initialUserIdx = 0, onClose, onStorySeen, onD
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer)
-          handleNext()
+          if (handleNextRef.current) handleNextRef.current()
           return 0
         }
         return prev + step
@@ -75,7 +78,7 @@ function StoryViewer({ userGroups, initialUserIdx = 0, onClose, onStorySeen, onD
     }, intervalTime)
 
     return () => clearInterval(timer)
-  }, [isPaused, activeStory, handleNext])
+  }, [isPaused, activeStory?.id])
 
   // Keyboard navigation
   useEffect(() => {
@@ -130,7 +133,10 @@ function StoryViewer({ userGroups, initialUserIdx = 0, onClose, onStorySeen, onD
               <div key={story.id} className="story-progress-segment-bg">
                 <div
                   className="story-progress-segment-fill"
-                  style={{ width: `${widthPercent}%` }}
+                  style={{
+                    width: `${widthPercent}%`,
+                    transition: widthPercent === 0 ? 'none' : 'width 0.05s linear',
+                  }}
                 />
               </div>
             )
