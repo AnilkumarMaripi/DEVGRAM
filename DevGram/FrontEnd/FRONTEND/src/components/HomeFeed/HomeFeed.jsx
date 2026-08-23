@@ -2229,13 +2229,54 @@ function HomeFeed({ activeUser, onLogout }) {
                                 <p style={{ textAlign: 'center', color: '#71717a', fontSize: '0.85rem', margin: 'auto' }}>Say hi to start the conversation! 🚀</p>
                               ) : (
                                 activeMessages.map((msg, i) => {
-                                  const myId = String(activeUser?.id || activeUser?._id || '')
-                                  const senderIdStr = String(msg.senderId || msg.sender?._id || msg.sender || '')
-                                  const isMe = myId && senderIdStr && myId === senderIdStr
+                                  const myIds = [
+                                    activeUser?.id,
+                                    activeUser?._id,
+                                    activeUser?.userId,
+                                    activeUser?.uid
+                                  ].filter(Boolean).map(String)
+
+                                  const senderIds = [
+                                    msg.senderId,
+                                    msg.sender?._id,
+                                    msg.sender?.id,
+                                    msg.sender
+                                  ].filter(Boolean).map(String)
+
+                                  const isMe = myIds.some((myId) => senderIds.includes(myId))
 
                                   return (
-                                    <div key={msg.id || msg._id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%', background: isMe ? '#4f46e5' : '#18181b', color: '#ffffff', padding: '10px 14px', borderRadius: '14px', fontSize: '0.88rem' }}>
-                                      {msg.text}
+                                    <div
+                                      key={msg.id || msg._id || i}
+                                      style={{
+                                        alignSelf: isMe ? 'flex-end' : 'flex-start',
+                                        maxWidth: '75%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: isMe ? 'flex-end' : 'flex-start',
+                                        gap: '4px'
+                                      }}
+                                    >
+                                      <div style={{ fontSize: '0.72rem', color: isMe ? '#818cf8' : '#a1a1aa', padding: '0 4px', fontWeight: '600' }}>
+                                        {isMe ? 'You' : (selectedChatUser.name || 'Partner')}
+                                      </div>
+                                      <div
+                                        style={{
+                                          background: isMe
+                                            ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                                            : '#18181b',
+                                          border: isMe ? 'none' : '1px solid #27272a',
+                                          color: '#ffffff',
+                                          padding: '11px 16px',
+                                          borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                          fontSize: '0.9rem',
+                                          lineHeight: '1.45',
+                                          wordBreak: 'break-word',
+                                          boxShadow: isMe ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none'
+                                        }}
+                                      >
+                                        {msg.text}
+                                      </div>
                                     </div>
                                   )
                                 })
