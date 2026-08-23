@@ -71,6 +71,14 @@ function StoriesBar({ activeUser }) {
     await loadFeed()
   }
 
+  const scrollRowRef = useRef(null)
+
+  const handleScrollRight = () => {
+    if (scrollRowRef.current) {
+      scrollRowRef.current.scrollBy({ left: 240, behavior: 'smooth' })
+    }
+  }
+
   if (loading && userGroups.length === 0) {
     return (
       <div className="stories-bar-skeleton">
@@ -83,65 +91,77 @@ function StoriesBar({ activeUser }) {
 
   return (
     <section className="stories-bar-container" aria-label="Stories">
-      <div className="stories-scroll-row">
-        {/* 1. Own Profile Circle (Always First) */}
-        <div className="story-circle-item own-circle">
-          <div
-            className={`story-avatar-ring ${
-              ownHasStories ? (ownGroup.hasUnseen ? 'ring-unseen' : 'ring-seen') : 'ring-none'
-            }`}
-            onClick={() => handleCircleClick(ownGroup || { isOwn: true, stories: [] }, 0)}
-          >
-            <img
-              src={activeUser?.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-              alt="Your story"
-              className="story-avatar-img"
-            />
-            <button
-              className="story-add-badge"
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowAddModal(true)
-              }}
-              title="Post a story"
+      <div className="stories-bar-wrapper">
+        <div className="stories-scroll-row" ref={scrollRowRef}>
+          {/* 1. Own Profile Circle (Always First) */}
+          <div className="story-circle-item own-circle">
+            <div
+              className={`story-avatar-ring ${
+                ownHasStories ? (ownGroup.hasUnseen ? 'ring-unseen' : 'ring-seen') : 'ring-unseen'
+              }`}
+              onClick={() => handleCircleClick(ownGroup || { isOwn: true, stories: [] }, 0)}
             >
-              +
-            </button>
+              <img
+                src={activeUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
+                alt="Your story"
+                className="story-avatar-img"
+              />
+              <button
+                type="button"
+                className="story-add-badge"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowAddModal(true)
+                }}
+                title="Post a story"
+              >
+                +
+              </button>
+            </div>
+            <span className="story-username">Your story</span>
           </div>
-          <span className="story-username">Your story</span>
+
+          {/* 2. Other Users' Story Circles */}
+          {userGroups
+            .filter((g) => !g.isOwn)
+            .map((group, filteredIdx) => {
+              const actualIdx = userGroups.findIndex((g) => g.userId === group.userId)
+
+              return (
+                <div
+                  key={group.userId}
+                  className="story-circle-item"
+                  onClick={() => handleCircleClick(group, actualIdx)}
+                >
+                  <div
+                    className={`story-avatar-ring ${
+                      group.hasUnseen ? 'ring-unseen' : 'ring-seen'
+                    }`}
+                  >
+                    <img
+                      src={group.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
+                      alt={group.name}
+                      className="story-avatar-img"
+                    />
+                  </div>
+                  <span className="story-username">
+                    {group.username.length > 10
+                      ? `${group.username.slice(0, 9)}..`
+                      : group.username}
+                  </span>
+                </div>
+              )
+            })}
         </div>
 
-        {/* 2. Other Users' Story Circles */}
-        {userGroups
-          .filter((g) => !g.isOwn)
-          .map((group, filteredIdx) => {
-            const actualIdx = userGroups.findIndex((g) => g.userId === group.userId)
-
-            return (
-              <div
-                key={group.userId}
-                className="story-circle-item"
-                onClick={() => handleCircleClick(group, actualIdx)}
-              >
-                <div
-                  className={`story-avatar-ring ${
-                    group.hasUnseen ? 'ring-unseen' : 'ring-seen'
-                  }`}
-                >
-                  <img
-                    src={group.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-                    alt={group.name}
-                    className="story-avatar-img"
-                  />
-                </div>
-                <span className="story-username">
-                  {group.username.length > 10
-                    ? `${group.username.slice(0, 9)}..`
-                    : group.username}
-                </span>
-              </div>
-            )
-          })}
+        {/* Floating Right Scroll Arrow Button (Instagram Style) */}
+        {userGroups.length > 3 && (
+          <button type="button" className="stories-next-btn" onClick={handleScrollRight} title="Scroll right">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Story Creation Modal */}
