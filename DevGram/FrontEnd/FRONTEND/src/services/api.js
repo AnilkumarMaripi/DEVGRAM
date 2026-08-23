@@ -3,7 +3,9 @@ const rawApiUrl = import.meta.env.VITE_API_URL
 
 export const API_BASE_URL = (rawApiUrl && rawApiUrl.trim() !== '')
   ? rawApiUrl.trim().replace(/\/$/, '')
-  : 'http://localhost:5000'
+  : (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+    ? 'https://devgram-backend-q8uu.onrender.com'
+    : 'http://localhost:5000'
 
 /**
  * Constructs a full API URL given an endpoint path.
