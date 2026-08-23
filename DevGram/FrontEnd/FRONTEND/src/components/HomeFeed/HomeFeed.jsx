@@ -73,17 +73,33 @@ function HomeFeed({ activeUser, onLogout }) {
     }
   }, [])
 
+  const chatEndRef = useRef(null)
+
   useEffect(() => {
     if (activeTab === 'direct') {
       fetchConversations()
+      const convTimer = setInterval(() => {
+        fetchConversations()
+      }, 3000)
+      return () => clearInterval(convTimer)
     }
   }, [activeTab, fetchConversations])
 
   useEffect(() => {
-    if (selectedChatUser) {
+    if (activeTab === 'direct' && selectedChatUser) {
       fetchChatHistory(selectedChatUser.id)
+      const chatTimer = setInterval(() => {
+        fetchChatHistory(selectedChatUser.id)
+      }, 2000) // Poll every 2 seconds for real-time instant chat updates
+      return () => clearInterval(chatTimer)
     }
-  }, [selectedChatUser, fetchChatHistory])
+  }, [activeTab, selectedChatUser, fetchChatHistory])
+
+  useEffect(() => {
+    if (selectedChatUser && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [chatMessagesMap, selectedChatUser])
 
   // Professional account state
   const [isProfessionalAccount, setIsProfessionalAccount] = useState(
@@ -2138,6 +2154,7 @@ function HomeFeed({ activeUser, onLogout }) {
                             )
                           })
                         )}
+                        <div ref={chatEndRef} />
                       </div>
 
                       {/* Chat Input */}
