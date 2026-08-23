@@ -2628,18 +2628,18 @@ function HomeFeed({ activeUser, onLogout }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => activeUser && setProfileUser(activeUser)}>
                     <img src={activeUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'} alt="" style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }} />
                     <div>
-                      <strong style={{ display: 'block', fontSize: '0.9rem', color: '#ffffff' }}>@{activeUser?.username || 'user'}</strong>
+                      <strong style={{ display: 'block', fontSize: '0.88rem', color: '#ffffff', fontWeight: '700' }}>@{activeUser?.username || 'user'}</strong>
                       <span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>{activeUser?.name || 'Developer'}</span>
                     </div>
                   </div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#818cf8', cursor: 'pointer' }} onClick={onLogout}>Switch</span>
+                  <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#38bdf8', cursor: 'pointer' }} onClick={onLogout}>Switch</span>
                 </div>
 
                 {/* Suggested For You */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#a1a1aa' }}>Suggested for you</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#ffffff', cursor: 'pointer' }} onClick={() => setActiveTab('explore')}>See All</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#ffffff', cursor: 'pointer' }} onClick={() => setActiveTab('explore')}>See All</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {(() => {
@@ -2700,7 +2700,7 @@ function HomeFeed({ activeUser, onLogout }) {
                               <button
                                 type="button"
                                 onClick={() => handleSendFollowRequest(targetId)}
-                                style={{ background: 'none', border: 'none', color: '#818cf8', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
+                                style={{ background: 'none', border: 'none', color: '#38bdf8', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}
                               >
                                 Follow
                               </button>
