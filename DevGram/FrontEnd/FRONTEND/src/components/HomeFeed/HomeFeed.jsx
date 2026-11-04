@@ -167,7 +167,7 @@ function HomeFeed({ activeUser, onLogout }) {
   // DevGram Sidebar & Modal States
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
-  const [sidebarPinned, setSidebarPinned] = useState(false)
+  const [sidebarPinned, setSidebarPinned] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1264 : false)
 
   // Edit Profile & Photo Selector View States
   const [showEditProfileModal, setShowEditProfileModal] = useState(false)
@@ -2603,12 +2603,30 @@ function HomeFeed({ activeUser, onLogout }) {
             )}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%', margin: '0', padding: '0 40px 0 24px', boxSizing: 'border-box' }}>
-            {/* Top Full Width Header Line */}
-            <header className="feed-app-header-stylish" style={{ width: '100%', padding: '12px 0 10px 0', borderBottom: '1px solid #1f1f23', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'visible' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            maxWidth: '1020px',
+            margin: '0 auto',
+            padding: '16px 20px 48px 20px',
+            boxSizing: 'border-box'
+          }}>
+            {/* Top Centered Header Line */}
+            <header className="feed-app-header-stylish" style={{
+              width: '100%',
+              padding: '8px 0 14px 0',
+              borderBottom: '1px solid #1f1f23',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center'
+            }}>
               <h1 style={{
                 margin: 0,
-                fontSize: '2.6rem',
+                fontSize: '2.5rem',
                 fontWeight: '500',
                 fontFamily: "'Grand Hotel', 'Great Vibes', 'Dancing Script', cursive",
                 background: 'linear-gradient(45deg, #ffffff 0%, #818cf8 40%, #c084fc 75%, #f472b6 100%)',
@@ -2616,18 +2634,22 @@ function HomeFeed({ activeUser, onLogout }) {
                 WebkitTextFillColor: 'transparent',
                 letterSpacing: '1px',
                 filter: 'drop-shadow(0 0 16px rgba(192, 132, 252, 0.4))',
-                lineHeight: '1.25',
-                paddingBottom: '4px',
-                overflow: 'visible'
+                lineHeight: '1.2'
               }}>
                 Devgram
               </h1>
             </header>
 
-            {/* Two Column Container Below Full Header */}
-            <div style={{ display: 'flex', gap: '40px', width: '100%', justifyContent: 'space-between' }}>
+            {/* Two Column Container Centered Together */}
+            <div style={{
+              display: 'flex',
+              gap: '40px',
+              width: '100%',
+              justifyContent: 'center',
+              alignItems: 'flex-start'
+            }}>
               {/* Left Main Feed Column (~65%, max-w-2xl) */}
-              <div style={{ flex: 1, maxWidth: '630px', width: '100%' }}>
+              <div style={{ flex: '1 1 600px', maxWidth: '600px', width: '100%', minWidth: 0 }}>
                 {/* Stories Bar Component */}
                 <StoriesBar activeUser={activeUser} />
 
@@ -2662,7 +2684,14 @@ function HomeFeed({ activeUser, onLogout }) {
               </div>
 
               {/* Right Sidebar Below Header (~35%, hidden on mobile) */}
-              <aside className="feed-right-sidebar" style={{ width: '320px', flexShrink: 0, paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '20px', marginLeft: 'auto' }}>
+              <aside className="feed-right-sidebar" style={{
+                width: '320px',
+                flexShrink: 0,
+                paddingTop: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
                 {/* Current User Row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => activeUser && setProfileUser(activeUser)}>
