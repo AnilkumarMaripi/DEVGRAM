@@ -146,10 +146,10 @@ function AuthPanel({
   const {
     register: forgotRegister,
     handleSubmit: handleForgotSubmit,
+    formState: { errors: forgotErrors },
   } = useForm({
     resolver: zodResolver(forgotZodSchema),
     defaultValues: { email: '' },
-    formState: { errors: forgotErrors }
   })
 
   const onLoginSubmit = async (data) => {
