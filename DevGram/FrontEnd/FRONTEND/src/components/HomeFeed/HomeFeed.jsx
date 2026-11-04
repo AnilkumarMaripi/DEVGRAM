@@ -3311,7 +3311,7 @@ function HomeFeed({ activeUser, onLogout }) {
           setActiveTab(tab)
         }}
         onCreatePost={() => setShowCreatePostModal(true)}
-        unreadCount={unreadNotifCount}
+        unreadCount={(notifications?.length || 0) + (pendingRequests?.length || 0)}
       />
     </div>
   )
