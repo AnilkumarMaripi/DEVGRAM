@@ -1,5 +1,7 @@
 import express from 'express'
-import { requireAuth } from '../middleware/requireAuth.js'
+import { requireAuth, requireVerifiedEmail } from '../middleware/requireAuth.js'
+import { validate, createStorySchema } from '../middleware/validate.js'
+import { writeRateLimiter } from '../middleware/rateLimiter.js'
 import Story from '../models/Story.js'
 import Connection from '../models/Connection.js'
 import User from '../models/User.js'
@@ -101,8 +103,8 @@ router.get('/feed', requireAuth, async (request, response) => {
   }
 })
 
-// 2. POST /api/stories - Create new story (24-hour TTL)
-router.post('/', requireAuth, async (request, response) => {
+// 2. POST /api/stories - Create new story (24-hour TTL, requires email verification, rate limited, validated)
+router.post('/', requireAuth, requireVerifiedEmail, writeRateLimiter, validate(createStorySchema), async (request, response) => {
   try {
     const { mediaUrl, caption } = request.body
     if (!mediaUrl) {

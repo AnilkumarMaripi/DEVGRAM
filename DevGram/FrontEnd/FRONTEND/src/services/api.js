@@ -27,8 +27,12 @@ export function getApiUrl(endpoint = '') {
 }
 
 /**
- * Universal fetch wrapper for DevGram API endpoints with credentials enabled.
+ * Universal fetch wrapper for DevGram API endpoints with credentials enabled,
+ * automatic 401 refresh token retry, and standardized error parsing.
  */
+let isRefreshing = false
+let refreshPromise = null
+
 export async function apiFetch(endpoint, options = {}) {
   const url = getApiUrl(endpoint)
   const defaultHeaders = {
@@ -36,11 +40,40 @@ export async function apiFetch(endpoint, options = {}) {
     ...options.headers,
   }
 
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers: defaultHeaders,
     credentials: options.credentials || 'include',
   })
+
+  // Auto-refresh token on 401 Unauthorized if not already refreshing/logging in
+  if (
+    response.status === 401 &&
+    !options._retry &&
+    !endpoint.includes('/auth/login') &&
+    !endpoint.includes('/auth/refresh') &&
+    !endpoint.includes('/auth/register')
+  ) {
+    if (!isRefreshing) {
+      isRefreshing = true
+      refreshPromise = fetch(getApiUrl('/api/auth/refresh'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null)
+        .finally(() => {
+          isRefreshing = false
+        })
+    }
+
+    const refreshResult = await refreshPromise
+    if (refreshResult && refreshResult.token) {
+      // Retry the original request once
+      return apiFetch(endpoint, { ...options, _retry: true })
+    }
+  }
 
   const contentType = response.headers.get('content-type') || ''
   let data
@@ -59,7 +92,11 @@ export async function apiFetch(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || `API Request failed with status ${response.status}`)
+    const error = new Error(data.message || `API Request failed with status ${response.status}`)
+    error.status = response.status
+    error.code = data.error || data.code
+    error.data = data
+    throw error
   }
 
   return data

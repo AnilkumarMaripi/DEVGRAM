@@ -66,6 +66,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    onboarded: {
+      type: Boolean,
+      default: false,
+    },
+    techStack: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true },
 )
@@ -74,6 +86,7 @@ userSchema.set('toJSON', {
   virtuals: true,
   transform: (_doc, ret) => {
     ret.id = ret._id.toString()
+    delete ret.password
     delete ret.__v
     return ret
   },

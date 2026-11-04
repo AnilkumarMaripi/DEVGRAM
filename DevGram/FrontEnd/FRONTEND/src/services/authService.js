@@ -234,21 +234,106 @@ export async function loginLocalUser(credentials) {
   return data
 }
 
-export async function resetPassword(resetData) {
+export async function refreshSession() {
+  try {
+    const response = await fetch(`${apiUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+export async function requestPasswordReset(email) {
   const response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(resetData),
+    body: JSON.stringify({ email }),
   })
-
-  const data = await response.json()
+  const data = await safeJsonParse(response)
   if (!response.ok) {
-    throw new Error(data.message || 'Password reset failed')
+    throw new Error(data.message || 'Password reset request failed')
   }
   return data
+}
+
+export async function confirmPasswordReset({ email, token, newPassword }) {
+  const response = await fetch(`${apiUrl}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, token, newPassword }),
+  })
+  const data = await safeJsonParse(response)
+  if (!response.ok) {
+    throw new Error(data.message || 'Password reset confirmation failed')
+  }
+  return data
+}
+
+export async function verifyEmail({ email, token }) {
+  const response = await fetch(`${apiUrl}/api/auth/verify-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, token }),
+  })
+  const data = await safeJsonParse(response)
+  if (!response.ok) {
+    throw new Error(data.message || 'Email verification failed')
+  }
+  return data
+}
+
+export async function resendVerificationEmail(email) {
+  const response = await fetch(`${apiUrl}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  })
+  const data = await safeJsonParse(response)
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to resend verification email')
+  }
+  return data
+}
+
+export async function deleteAccount({ password, confirm }) {
+  const response = await fetch(`${apiUrl}/api/auth/account`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ password, confirm }),
+  })
+  const data = await safeJsonParse(response)
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete account')
+  }
+  return data
+}
+
+export async function completeOnboarding(onboardingData) {
+  const response = await fetch(`${apiUrl}/api/auth/onboarding`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(onboardingData),
+  })
+  const data = await safeJsonParse(response)
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to complete onboarding')
+  }
+  return data
+}
+
+export async function resetPassword(resetData) {
+  return requestPasswordReset(resetData.email)
 }
 
 export async function fetchUsers() {

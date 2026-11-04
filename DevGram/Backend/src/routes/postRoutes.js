@@ -1,5 +1,7 @@
 import express from 'express'
-import { requireAuth } from '../middleware/requireAuth.js'
+import { requireAuth, requireVerifiedEmail } from '../middleware/requireAuth.js'
+import { validate, createPostSchema, createCommentSchema } from '../middleware/validate.js'
+import { writeRateLimiter } from '../middleware/rateLimiter.js'
 import Post from '../models/Post.js'
 import User from '../models/User.js'
 import Notification from '../models/Notification.js'
@@ -88,8 +90,8 @@ router.get('/:id', async (request, response) => {
   }
 })
 
-// 3. POST create new post
-router.post('/', requireAuth, async (request, response) => {
+// 3. POST create new post (Rate Limited, Validated, Blocked if email unverified)
+router.post('/', requireAuth, requireVerifiedEmail, writeRateLimiter, validate(createPostSchema), async (request, response) => {
   try {
     const { content, codeSnippet, imageUrl, videoUrl, category, tags } = request.body
 
@@ -324,8 +326,8 @@ router.post('/:id/save', requireAuth, async (request, response) => {
   }
 })
 
-// 7. POST add comment to post
-router.post('/:id/comments', requireAuth, async (request, response) => {
+// 7. POST add comment to post (Rate Limited & Validated)
+router.post('/:id/comments', requireAuth, writeRateLimiter, validate(createCommentSchema), async (request, response) => {
   try {
     const postId = request.params.id
     const userId = request.user.userId

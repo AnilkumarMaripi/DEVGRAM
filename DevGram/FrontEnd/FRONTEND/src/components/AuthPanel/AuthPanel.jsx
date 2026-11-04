@@ -1,15 +1,33 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import './AuthPanel.css'
 import GitHubIcon from '../icons/GitHubIcon'
 
-const initialRegisterData = {
-  name: '',
-  email: '',
-  mobile: '',
-  gender: '',
-  password: '',
-  confirmPassword: '',
-}
+const loginZodSchema = z.object({
+  email: z.string().trim().min(1, 'Email is required').email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+const registerZodSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters'),
+  email: z.string().trim().min(1, 'Email is required').email('Please enter a valid email address'),
+  mobile: z.string().optional().default(''),
+  gender: z.string().optional().default(''),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms of Service and Privacy Policy to register' }),
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
+const forgotZodSchema = z.object({
+  email: z.string().trim().min(1, 'Email is required').email('Please enter a valid email address'),
+})
 
 function FloatingField({
   label,
@@ -20,40 +38,54 @@ function FloatingField({
   revealable = false,
   type = 'text',
   value,
+  registration,
+  error,
 }) {
   const [visible, setVisible] = useState(false)
   const inputType = revealable && visible ? 'text' : type
 
   return (
-    <label className="field-group floating-field">
-      {options ? (
-        <select name={name} value={value} onChange={onChange} required>
-          <option value=""></option>
-          {options.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
-      ) : (
-        <input
-          name={name}
-          type={inputType}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          required
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <label className={`field-group floating-field ${error ? 'field-error' : ''}`} style={error ? { borderColor: '#ef4444' } : {}}>
+        {options ? (
+          <select
+            name={name}
+            value={value}
+            onChange={onChange}
+            {...(registration || {})}
+          >
+            <option value=""></option>
+            {options.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            name={name}
+            type={inputType}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            {...(registration || {})}
+          />
+        )}
+        <span>{label}</span>
+        {revealable && (
+          <button
+            className="password-toggle"
+            type="button"
+            onClick={() => setVisible((current) => !current)}
+          >
+            {visible ? 'hide' : 'show'}
+          </button>
+        )}
+      </label>
+      {error && (
+        <span style={{ color: '#f87171', fontSize: '0.78rem', marginTop: '4px', textAlign: 'left', fontWeight: '500' }}>
+          {error}
+        </span>
       )}
-      <span>{label}</span>
-      {revealable && (
-        <button
-          className="password-toggle"
-          type="button"
-          onClick={() => setVisible((current) => !current)}
-        >
-          {visible ? 'hide' : 'show'}
-        </button>
-      )}
-    </label>
+    </div>
   )
 }
 
@@ -78,64 +110,78 @@ function AuthPanel({
   onResetPassword,
   page,
 }) {
-  const [loginData, setLoginData] = useState({ email: '', password: '' })
-  const [registerData, setRegisterData] = useState(initialRegisterData)
-  const [resetData, setResetData] = useState({ email: '', password: '', confirmPassword: '' })
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isGithubLoading, setIsGithubLoading] = useState(false)
+  const [isResetSending, setIsResetSending] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
   const [alert, setAlert] = useState('')
 
-  const updateLogin = (event) => {
-    setLoginData({ ...loginData, [event.target.name]: event.target.value })
-  }
+  // react-hook-form setups with Zod
+  const {
+    register: loginRegister,
+    handleSubmit: handleLoginSubmit,
+    formState: { errors: loginErrors, isSubmitting: isLoggingIn },
+  } = useForm({
+    resolver: zodResolver(loginZodSchema),
+    defaultValues: { email: '', password: '' },
+  })
 
-  const updateRegister = (event) => {
-    setRegisterData({ ...registerData, [event.target.name]: event.target.value })
-  }
+  const {
+    register: regRegister,
+    handleSubmit: handleRegSubmit,
+    formState: { errors: regErrors, isSubmitting: isRegistering },
+  } = useForm({
+    resolver: zodResolver(registerZodSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      mobile: '',
+      gender: '',
+      password: '',
+      confirmPassword: '',
+      termsAccepted: false,
+    },
+  })
 
-  const handleLogin = async (event) => {
-    event.preventDefault()
+  const {
+    register: forgotRegister,
+    handleSubmit: handleForgotSubmit,
+  } = useForm({
+    resolver: zodResolver(forgotZodSchema),
+    defaultValues: { email: '' },
+    formState: { errors: forgotErrors }
+  })
+
+  const onLoginSubmit = async (data) => {
     setAlert('')
     try {
-      await onLogin(loginData)
+      await onLogin(data)
     } catch (error) {
       setAlert(error.message || 'Use a valid email and password.')
     }
   }
 
-  const handleRegister = async (event) => {
-    event.preventDefault()
-    if (registerData.password !== registerData.confirmPassword) {
-      setAlert('Passwords do not match.')
-      return
-    }
+  const onRegisterSubmit = async (data) => {
     setAlert('')
     try {
-      const data = await onRegister(registerData)
-      onRegisterSuccess(data.user)
+      const res = await onRegister(data)
+      onRegisterSuccess(res.user)
     } catch (error) {
       setAlert(error.message || 'Registration failed.')
     }
   }
 
-  const handleReset = async (event) => {
-    event.preventDefault()
-    if (!resetData.email) {
-      setAlert('Email is required.')
-      return
-    }
-    if (resetData.password !== resetData.confirmPassword) {
-      setAlert('New passwords do not match.')
-      return
-    }
+  const onForgotSubmit = async (data) => {
     setAlert('')
+    setIsResetSending(true)
     try {
-      await onResetPassword(resetData)
-      setResetData({ email: '', password: '', confirmPassword: '' })
-      setAlert('Password updated. Return to login.')
-      onNavigate('login')
+      await onResetPassword(data)
+      setResetEmailSent(true)
+      setAlert('If an account exists, a 15-minute reset link has been dispatched.')
     } catch (error) {
-      setAlert(error.message || 'Password update failed.')
+      setAlert(error.message || 'Password reset request failed.')
+    } finally {
+      setIsResetSending(false)
     }
   }
 
@@ -167,18 +213,43 @@ function AuthPanel({
     return (
       <section className="auth-panel" aria-label="Reset password">
         <div className="auth-card">
-          {alert && <div className="status-alert">{alert}</div>}
+          {alert && <div className={`status-alert ${resetEmailSent ? 'success' : ''}`}>{alert}</div>}
           <div className="auth-heading">
-            <span>/ auth / reset</span>
-            <h2>New Password</h2>
+            <span>/ auth / forgot-password</span>
+            <h2>Reset Password</h2>
           </div>
-          <form className="login-form" onSubmit={handleReset}>
-            <FloatingField label="Registered Email" name="email" type="email" value={resetData.email} onChange={(event) => setResetData({ ...resetData, email: event.target.value })} />
-            <FloatingField label="New Password" name="password" type="password" revealable value={resetData.password} onChange={(event) => setResetData({ ...resetData, password: event.target.value })} />
-            <FloatingField label="Confirm New Password" name="confirmPassword" type="password" revealable value={resetData.confirmPassword} onChange={(event) => setResetData({ ...resetData, confirmPassword: event.target.value })} />
-            <button className="primary-button" type="submit">Update Password</button>
-            <p className="register-copy"><button type="button" onClick={() => onNavigate('login')}>back to login -&gt;</button></p>
-          </form>
+          {resetEmailSent ? (
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <p style={{ color: '#a1a1aa', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
+                Please check your email inbox for a link to set a new password. The link expires in <strong>15 minutes</strong>.
+              </p>
+              <button className="primary-button" type="button" onClick={() => { setResetEmailSent(false); onNavigate('login'); }}>
+                Back to Login
+              </button>
+            </div>
+          ) : (
+            <form className="login-form" onSubmit={handleForgotSubmit(onForgotSubmit)}>
+              <p style={{ color: '#a1a1aa', fontSize: '0.85rem', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+                Enter your registered developer email address to receive a secure one-time password reset link.
+              </p>
+              <FloatingField
+                label="Registered Email"
+                name="email"
+                type="email"
+                registration={forgotRegister('email')}
+                error={loginErrors?.email?.message}
+              />
+              <button className="primary-button" type="submit" disabled={isResetSending}>
+                {isResetSending ? 'Sending Link...' : 'Send Reset Link'}
+              </button>
+              <p className="register-copy">
+                remember your credentials?{' '}
+                <button type="button" onClick={() => onNavigate('login')}>
+                  back to login -&gt;
+                </button>
+              </p>
+            </form>
+          )}
         </div>
       </section>
     )
@@ -193,28 +264,94 @@ function AuthPanel({
             <span>/ auth / register</span>
             <h2>Create Account</h2>
           </div>
-          <form className="login-form register-form" onSubmit={handleRegister}>
-            <FloatingField label="Name" name="name" value={registerData.name} onChange={updateRegister} />
-            <FloatingField label="Email" name="email" type="email" value={registerData.email} onChange={updateRegister} />
-            <FloatingField label="Mobile Number" name="mobile" type="tel" value={registerData.mobile} onChange={updateRegister} />
+          <form className="login-form register-form" onSubmit={handleRegSubmit(onRegisterSubmit)}>
+            <FloatingField
+              label="Name"
+              name="name"
+              registration={regRegister('name')}
+              error={regErrors?.name?.message}
+            />
+            <FloatingField
+              label="Email"
+              name="email"
+              type="email"
+              registration={regRegister('email')}
+              error={regErrors?.email?.message}
+            />
+            <FloatingField
+              label="Mobile Number"
+              name="mobile"
+              type="tel"
+              registration={regRegister('mobile')}
+              error={regErrors?.mobile?.message}
+            />
             <FloatingField
               label="Gender"
               name="gender"
-              value={registerData.gender}
-              onChange={updateRegister}
               options={['Female', 'Male', 'Other', 'Prefer not to say']}
+              registration={regRegister('gender')}
+              error={regErrors?.gender?.message}
             />
-            <FloatingField label="Password" name="password" type="password" revealable value={registerData.password} onChange={updateRegister} />
+            <FloatingField
+              label="Password (min 8 chars)"
+              name="password"
+              type="password"
+              revealable
+              registration={regRegister('password')}
+              error={regErrors?.password?.message}
+            />
             <FloatingField
               label="Confirm Password"
               name="confirmPassword"
               type="password"
               revealable
-              value={registerData.confirmPassword}
-              onChange={updateRegister}
+              registration={regRegister('confirmPassword')}
+              error={regErrors?.confirmPassword?.message}
             />
-            <button className="primary-button" type="submit">Create Account</button>
+
+            {/* Required Terms & Privacy Checkbox */}
+            <div style={{ marginTop: '4px', textAlign: 'left' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                <input
+                  type="checkbox"
+                  style={{ marginTop: '3px' }}
+                  {...regRegister('termsAccepted')}
+                />
+                <span>
+                  I accept the{' '}
+                  <span
+                    style={{ color: '#818cf8', textDecoration: 'underline', cursor: 'pointer' }}
+                    onClick={(e) => { e.preventDefault(); onNavigate('terms'); }}
+                  >
+                    Terms of Service
+                  </span>{' '}
+                  and{' '}
+                  <span
+                    style={{ color: '#818cf8', textDecoration: 'underline', cursor: 'pointer' }}
+                    onClick={(e) => { e.preventDefault(); onNavigate('privacy'); }}
+                  >
+                    Privacy Policy
+                  </span>{' '}
+                  <em style={{ fontSize: '0.72rem', color: '#eab308' }}>[REVIEW BEFORE LAUNCH]</em>
+                </span>
+              </label>
+              {regErrors?.termsAccepted && (
+                <span style={{ color: '#f87171', fontSize: '0.78rem', marginTop: '4px', display: 'block', fontWeight: '500' }}>
+                  {regErrors.termsAccepted.message}
+                </span>
+              )}
+            </div>
+
+            <button className="primary-button" type="submit" disabled={isRegistering}>
+              {isRegistering ? 'Creating Account...' : 'Create Account'}
+            </button>
             <p className="register-copy">already joined? <button type="button" onClick={() => onNavigate('login')}>back to login -&gt;</button></p>
+
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #1f1f23', display: 'flex', justifyContent: 'center', gap: '14px', fontSize: '0.75rem', color: '#71717a' }}>
+              <button type="button" onClick={() => onNavigate('privacy')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>Privacy Policy</button>
+              <span>&bull;</span>
+              <button type="button" onClick={() => onNavigate('terms')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>Terms of Service</button>
+            </div>
           </form>
         </div>
       </section>
@@ -229,11 +366,26 @@ function AuthPanel({
           <span>/ auth / login</span>
           <h2>Welcome Back</h2>
         </div>
-        <form className="login-form" onSubmit={handleLogin}>
-          <FloatingField label="Email" name="email" type="email" value={loginData.email} onChange={updateLogin} />
-          <FloatingField label="Password" name="password" type="password" revealable value={loginData.password} onChange={updateLogin} />
+        <form className="login-form" onSubmit={handleLoginSubmit(onLoginSubmit)}>
+          <FloatingField
+            label="Email"
+            name="email"
+            type="email"
+            registration={loginRegister('email')}
+            error={loginErrors?.email?.message}
+          />
+          <FloatingField
+            label="Password"
+            name="password"
+            type="password"
+            revealable
+            registration={loginRegister('password')}
+            error={loginErrors?.password?.message}
+          />
           <button className="help-link" type="button" onClick={() => onNavigate('forgot')}>forgot password?</button>
-          <button className="primary-button" type="submit">Log In</button>
+          <button className="primary-button" type="submit" disabled={isLoggingIn}>
+            {isLoggingIn ? 'Logging in...' : 'Log In'}
+          </button>
           <div className="form-divider"><span>continue with</span></div>
           <div className="social-grid">
             <button className="ghost-button" type="button" onClick={handleGoogleLogin} disabled={isGoogleLoading}>
@@ -243,7 +395,13 @@ function AuthPanel({
               <GitHubIcon /> {isGithubLoading ? 'Opening GitHub...' : 'GitHub'}
             </button>
           </div>
-          <p className="register-copy">new here? <button type="button" onClick={() => onNavigate('register')}>create an account -&gt;</button></p>
+          <p className="register-copy">new builder? <button type="button" onClick={() => onNavigate('register')}>create account -&gt;</button></p>
+
+          <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #1f1f23', display: 'flex', justifyContent: 'center', gap: '14px', fontSize: '0.75rem', color: '#71717a' }}>
+            <button type="button" onClick={() => onNavigate('privacy')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>Privacy Policy</button>
+            <span>&bull;</span>
+            <button type="button" onClick={() => onNavigate('terms')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>Terms of Service</button>
+          </div>
         </form>
       </div>
     </section>

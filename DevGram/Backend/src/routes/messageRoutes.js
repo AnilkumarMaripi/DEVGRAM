@@ -1,5 +1,7 @@
 import express from 'express'
-import { requireAuth } from '../middleware/requireAuth.js'
+import { requireAuth, requireVerifiedEmail } from '../middleware/requireAuth.js'
+import { validate, sendMessageSchema } from '../middleware/validate.js'
+import { writeRateLimiter } from '../middleware/rateLimiter.js'
 import Message from '../models/Message.js'
 import User from '../models/User.js'
 import Notification from '../models/Notification.js'
@@ -87,16 +89,12 @@ router.get('/:otherUserId', requireAuth, async (request, response) => {
   }
 })
 
-// 3. POST send message to otherUserId
-router.post('/:otherUserId', requireAuth, async (request, response) => {
+// 3. POST send message to otherUserId (Rate Limited & Validated)
+router.post('/:otherUserId', requireAuth, requireVerifiedEmail, writeRateLimiter, validate(sendMessageSchema), async (request, response) => {
   try {
     const userId = request.user.userId
     const otherUserId = request.params.otherUserId
     const { text } = request.body
-
-    if (!text || text.trim() === '') {
-      return response.status(400).json({ message: 'Message text is required' })
-    }
 
     const recipientUser = await User.findById(otherUserId)
     if (!recipientUser) {
@@ -130,6 +128,29 @@ router.post('/:otherUserId', requireAuth, async (request, response) => {
   } catch (error) {
     console.error('Send message failed:', error)
     return response.status(500).json({ message: 'Server error sending message' })
+  }
+})
+
+// 4. DELETE /api/messages/:id - Delete own message (Ownership verified)
+router.delete('/:id', requireAuth, async (request, response) => {
+  try {
+    const messageId = request.params.id
+    const userId = request.user.userId
+
+    const message = await Message.findById(messageId)
+    if (!message) {
+      return response.status(404).json({ message: 'Message not found' })
+    }
+
+    if (message.sender.toString() !== userId) {
+      return response.status(403).json({ error: 'FORBIDDEN', message: 'Unauthorized: You can only delete messages sent by you.' })
+    }
+
+    await Message.findByIdAndDelete(messageId)
+    return response.json({ message: 'Message deleted successfully', messageId })
+  } catch (error) {
+    console.error('Delete message failed:', error)
+    return response.status(500).json({ message: 'Failed to delete message' })
   }
 })
 

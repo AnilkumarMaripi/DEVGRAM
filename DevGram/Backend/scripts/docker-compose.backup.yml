@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: devgram-postgres-backup
+    restart: always
+    environment:
+      - POSTGRES_HOST=${PGHOST:-postgres}
+      - POSTGRES_PORT=${PGPORT:-5432}
+      - POSTGRES_DB=${PGDATABASE:-postgres}
+      - POSTGRES_USER=${PGUSER:-postgres}
+      - POSTGRES_PASSWORD=${PGPASSWORD:-postgres}
+      - SCHEDULE=0 2 * * * # Nightly at 02:00 AM UTC
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_SUFFIX=.sql.gz
+    volumes:
+      - ../backups:/backups
+

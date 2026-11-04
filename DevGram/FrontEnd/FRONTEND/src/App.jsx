@@ -4,18 +4,34 @@ import AuthPanel from './components/AuthPanel/AuthPanel'
 import HeroPanel from './components/HeroPanel/HeroPanel'
 import HomeFeed from './components/HomeFeed/HomeFeed'
 import DevGramLogo from './components/icons/DevGramLogo'
+import ProtectedRoute from './components/ProtectedRoute'
+import ResetPasswordPage from './components/AuthPanel/ResetPasswordPage'
+import VerifyEmailPage from './components/AuthPanel/VerifyEmailPage'
+import EmailVerificationBanner from './components/HomeFeed/EmailVerificationBanner'
+import OnboardingModal from './components/HomeFeed/OnboardingModal'
+import ErrorBoundary from './components/common/ErrorBoundary'
+import { ToastProvider } from './components/common/ToastContext'
+import NotFoundPage from './components/common/NotFoundPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsPage from './pages/TermsPage'
+import { initAnalytics, trackPageView } from './services/analytics'
+import { initSentry } from './services/sentry'
 import { signInWithGithub, signInWithGoogle, checkAuthStatus, logoutUser, signUpUser, loginLocalUser, resetPassword } from './services/authService'
 
 const BASE = '/DevGram'
-const routeNames = ['login', 'register', 'forgot', 'home']
+const routeNames = ['login', 'register', 'forgot', 'home', 'reset-password', 'verify-email', 'privacy', 'terms']
 
 const getPageFromPath = (pathname, hash = window.location.hash) => {
   if (hash.startsWith('#/')) {
-    const candidate = hash.slice(2)
-    return routeNames.includes(candidate) ? candidate : 'landing'
+    const candidate = hash.slice(2).split('?')[0]
+    if (!candidate) return 'landing'
+    return routeNames.includes(candidate) ? candidate : 'not-found'
   }
-  const pathSegment = pathname.replace(BASE, '').split('/').filter(Boolean)[0]
-  return routeNames.includes(pathSegment) ? pathSegment : 'landing'
+  const cleanPath = pathname.replace(BASE, '').trim()
+  if (!cleanPath || cleanPath === '/') return 'landing'
+  const segment = cleanPath.split('/').filter(Boolean)[0]?.split('?')[0]
+  if (!segment) return 'landing'
+  return routeNames.includes(segment) ? segment : 'not-found'
 }
 
 function App() {
@@ -43,6 +59,15 @@ function App() {
   }
 
   const [showNavConfirmModal, setShowNavConfirmModal] = useState(false)
+
+  useEffect(() => {
+    initAnalytics()
+    initSentry()
+  }, [])
+
+  useEffect(() => {
+    trackPageView(page)
+  }, [page])
   const [pendingTargetPage, setPendingTargetPage] = useState('login')
 
   const requestLogoutOrNav = (targetPage = 'login') => {
@@ -188,7 +213,9 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${page === 'home' ? 'app-shell-home' : ''}`}>
+    <ErrorBoundary>
+      <ToastProvider>
+        <main className={`app-shell ${page === 'home' ? 'app-shell-home' : ''}`}>
       {/* Go to Login Confirmation Modal */}
       {showNavConfirmModal && (
         <div style={{
@@ -277,7 +304,36 @@ function App() {
       )}
 
       {page === 'home' ? (
-        <HomeFeed activeUser={activeUser} onLogout={handleLogout} />
+        <ProtectedRoute activeUser={activeUser} onNavigate={setPage} onSessionRefreshed={setActiveUser}>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh' }}>
+            <EmailVerificationBanner activeUser={activeUser} />
+            {activeUser && !activeUser.onboarded && (
+              <OnboardingModal
+                activeUser={activeUser}
+                onComplete={(updatedUser) => {
+                  setActiveUser({ ...activeUser, ...updatedUser, onboarded: true })
+                }}
+              />
+            )}
+            <HomeFeed activeUser={activeUser} onLogout={handleLogout} />
+          </div>
+        </ProtectedRoute>
+      ) : page === 'reset-password' ? (
+        <ResetPasswordPage onNavigate={setPage} />
+      ) : page === 'verify-email' ? (
+        <VerifyEmailPage
+          onNavigate={setPage}
+          onVerificationSuccess={(updatedUser) => {
+            setActiveUser(updatedUser)
+            setPage('home')
+          }}
+        />
+      ) : page === 'privacy' ? (
+        <PrivacyPolicyPage onNavigate={setPage} />
+      ) : page === 'terms' ? (
+        <TermsPage onNavigate={setPage} />
+      ) : page === 'not-found' ? (
+        <NotFoundPage onNavigate={setPage} />
       ) : page === 'landing' ? (
         <div className="landing-page">
           <nav className="landing-nav">
@@ -336,11 +392,16 @@ function App() {
             </div>
           </section>
 
-          <footer className="landing-footer">
-            &copy; {new Date().getFullYear()} DevGram — built for builders
+          <footer className="landing-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div>&copy; {new Date().getFullYear()} DevGram — built for builders</div>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#a1a1aa' }}>
+              <button type="button" onClick={() => setPage('privacy')} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</button>
+              <span>&bull;</span>
+              <button type="button" onClick={() => setPage('terms')} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</button>
+            </div>
           </footer>
         </div>
-      ) : (
+      ) : ['login', 'register', 'forgot'].includes(page) ? (
         <>
           <HeroPanel />
           <AuthPanel
@@ -355,8 +416,12 @@ function App() {
             page={page}
           />
         </>
+      ) : (
+        <NotFoundPage onNavigate={setPage} />
       )}
-    </main>
+        </main>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 
 }

@@ -18,6 +18,10 @@ import {
 } from '../../services/authService'
 import DevGramLogo from '../icons/DevGramLogo'
 import StoriesBar from '../Stories/StoriesBar'
+import DeleteAccountModal from './DeleteAccountModal'
+import { FeedSkeleton } from '../common/Skeletons'
+import EmptyState from '../common/EmptyState'
+import MobileBottomNav from '../common/MobileBottomNav'
 import './HomeFeed.css'
 
 function HomeFeed({ activeUser, onLogout }) {
@@ -31,6 +35,7 @@ function HomeFeed({ activeUser, onLogout }) {
   const [profileFollowers, setProfileFollowers] = useState([])
   const [profileFollowing, setProfileFollowing] = useState([])
   const [socialModalType, setSocialModalType] = useState(null)
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
 
   // Dynamic Reels index & state
   const [currentReelIdx, setCurrentReelIdx] = useState(0)
@@ -1583,6 +1588,45 @@ function HomeFeed({ activeUser, onLogout }) {
                   {savingProfile ? 'Submitting...' : 'Submit / Save'}
                 </button>
               </div>
+
+              {/* Danger Zone: Delete Account */}
+              <div style={{
+                marginTop: '36px',
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'rgba(239, 68, 68, 0.05)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', color: '#f87171', fontSize: '0.95rem', fontWeight: '700' }}>
+                    Danger Zone: Delete Account
+                  </h4>
+                  <p style={{ margin: 0, color: '#a1a1aa', fontSize: '0.82rem' }}>
+                    Permanently delete your profile, posts, comments, stories, and messages.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteAccountModal(true)}
+                  style={{
+                    background: '#dc2626',
+                    border: 'none',
+                    color: '#ffffff',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Delete Account
+                </button>
+              </div>
             </div>
           </div>
         ) : profileUser ? (
@@ -2596,18 +2640,14 @@ function HomeFeed({ activeUser, onLogout }) {
                   </div>
                 )}
 
-                {/* Loading State */}
+                {/* Loading State & Skeletons */}
                 {loading ? (
-                  <div className="feed-loading">
-                    <div className="spinner"></div>
-                    <span>Fetching builds from DevGram network...</span>
-                  </div>
+                  <FeedSkeleton />
                 ) : filteredPosts.length === 0 ? (
-                  <div className="feed-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>
-                    <h3>No builds found</h3>
-                    <p>Try sharing your own build update or change your search filter!</p>
-                  </div>
+                  <EmptyState
+                    type="feed"
+                    onAction={() => setShowCreatePostModal(true)}
+                  />
                 ) : (
                   <div className="posts-list">
                     {sortedFilteredPosts.map((post) => (
@@ -3250,6 +3290,29 @@ function HomeFeed({ activeUser, onLogout }) {
           </button>
         </div>
       )}
+
+      {showDeleteAccountModal && (
+        <DeleteAccountModal
+          activeUser={activeUser}
+          onClose={() => setShowDeleteAccountModal(false)}
+          onDeleted={onLogout}
+        />
+      )}
+
+      {/* Mobile Bottom Navigation Bar (360px - 768px) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          if (tab === 'profile') {
+            if (activeUser) setProfileUser(activeUser)
+          } else {
+            setProfileUser(null)
+          }
+          setActiveTab(tab)
+        }}
+        onCreatePost={() => setShowCreatePostModal(true)}
+        unreadCount={unreadNotifCount}
+      />
     </div>
   )
 }

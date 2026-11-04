@@ -5,10 +5,12 @@ import express from 'express'
 import mongoose from 'mongoose'
 import { connectDatabase } from './config/db.js'
 import { connectPostgres } from './config/pgDb.js'
+import { runFlywayMigrations } from './config/migrate.js'
 import authRoutes from './routes/authRoutes.js'
 import postRoutes from './routes/postRoutes.js'
 import storyRoutes from './routes/storyRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
+import { notFoundHandler, globalErrorHandler } from './middleware/errorHandler.js'
 import Story from './models/Story.js'
 
 process.on('uncaughtException', (err) => console.error('Uncaught Error:', err));
@@ -73,9 +75,14 @@ app.use('/api/posts', postRoutes)
 app.use('/api/stories', storyRoutes)
 app.use('/api/messages', messageRoutes)
 
+// 404 & Global RFC 7807 Problem Details Error Handler
+app.use(notFoundHandler)
+app.use(globalErrorHandler)
+
 try {
   await connectDatabase()
   await connectPostgres()
+  await runFlywayMigrations()
 } catch (dbErr) {
   console.error('⚠️ Database initialization notice:', dbErr.message)
 }

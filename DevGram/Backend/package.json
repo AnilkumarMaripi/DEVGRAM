@@ -17,7 +17,9 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb-memory-server": "^11.2.0",
     "mongoose": "^9.0.1",
-    "pg": "^8.13.3"
+    "nodemailer": "^10.3.1",
+    "pg": "^8.13.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

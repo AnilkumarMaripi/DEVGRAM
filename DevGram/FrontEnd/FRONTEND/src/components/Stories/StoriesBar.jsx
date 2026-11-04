@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchStoriesFeed, createStory, markStoryAsSeen, deleteStory } from '../../services/storyService'
 import AddStoryModal from './AddStoryModal'
 import StoryViewer from './StoryViewer'
+import { StoriesSkeleton } from '../common/Skeletons'
 import './StoriesBar.css'
 
 function StoriesBar({ activeUser }) {
@@ -80,13 +81,7 @@ function StoriesBar({ activeUser }) {
   }
 
   if (loading && userGroups.length === 0) {
-    return (
-      <div className="stories-bar-skeleton">
-        <div className="stories-circle-skel" />
-        <div className="stories-circle-skel" />
-        <div className="stories-circle-skel" />
-      </div>
-    )
+    return <StoriesSkeleton />
   }
 
   return (
